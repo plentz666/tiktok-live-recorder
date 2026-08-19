@@ -1,0 +1,40 @@
+name: Rekam 2 Akun TikTok ke Google Drive
+
+on:
+  workflow_dispatch:
+
+jobs:
+  record_job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Script
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install System Apps
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends ffmpeg rclone
+          pip install --no-cache-dir -r requirements.txt
+
+      - name: Login ke Google Drive
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE_CONFIG_DATA }}" > ~/.config/rclone/rclone.conf
+
+      - name: Mulai Rekam Akun Pertama
+        run: python src/main.py -user nnaaheni -mode express
+
+      - name: Mulai Rekam Akun Kedua
+        run: python src/main.py -user nanaaheni_ -mode express
+
+      - name: Upload Video ke Google Drive Target
+        if: always()
+        run: rclone copy ./ gdrive:TikTok_Replays --include "*.mp4" --progress
