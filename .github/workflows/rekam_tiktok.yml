@@ -33,10 +33,10 @@ jobs:
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" > ~/.config/rclone/rclone.conf
 
       - name: Mulai Rekam Akun Pertama
-        run: python src/main.py -user nnaaheni -mode express
+        run: python main.py -user nnaaheni -mode express
 
       - name: Mulai Rekam Akun Kedua
-        run: python src/main.py -user nanaaheni_ -mode express
+        run: python main.py -user nanaaheni_ -mode express
 
       - name: Upload Video ke Google Drive Target
         if: always()
