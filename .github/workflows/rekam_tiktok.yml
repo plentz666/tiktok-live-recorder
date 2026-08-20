@@ -25,13 +25,13 @@ jobs:
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
-          echo "${{ secrets.RCLONE_CONFIG_DATA }}" > ~/.config/rclone/rclone.conf
+          echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
       - name: Rekam Akun 1
-        run: python main.py -user nnaaheni -mode m3u8
+        run: python main.py -user nnaaheni -mode automatic
 
       - name: Rekam Akun 2
-        run: python main.py -user nanaaheni_ -mode m3u8
+        run: python main.py -user nanaaheni_ -mode automatic
 
       - name: Upload GDrive
         if: always()
