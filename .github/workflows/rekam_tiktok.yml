@@ -6,6 +6,7 @@ on:
 jobs:
   record_job:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Checkout
@@ -28,10 +29,12 @@ jobs:
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
       - name: Rekam Akun 1
-        run: python main.py -user nnaaheni -mode manual -duration 1 || true
+        timeout-minutes: 1
+        run: python main.py -user nnaaheni -mode manual || true
 
       - name: Rekam Akun 2
-        run: python main.py -user nanaaheni_ -mode manual -duration 1 || true
+        timeout-minutes: 1
+        run: python main.py -user nanaaheni_ -mode manual || true
 
       - name: Upload GDrive
         if: always()
