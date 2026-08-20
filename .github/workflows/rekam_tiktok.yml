@@ -30,11 +30,13 @@ jobs:
 
       - name: Rekam Akun 1
         timeout-minutes: 1
-        run: python main.py -user nnaaheni -mode manual || true
+        continue-on-error: true
+        run: python main.py -user nnaaheni -mode manual
 
       - name: Rekam Akun 2
         timeout-minutes: 1
-        run: python main.py -user nanaaheni_ -mode manual || true
+        continue-on-error: true
+        run: python main.py -user nanaaheni_ -mode manual
 
       - name: Upload GDrive
         if: always()
