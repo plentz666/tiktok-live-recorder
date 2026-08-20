@@ -28,10 +28,10 @@ jobs:
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
       - name: Rekam Akun 1
-        run: python main.py -user nnaaheni -mode automatic -ffmpeg
+        run: python main.py -user nnaaheni -mode manual
 
       - name: Rekam Akun 2
-        run: python main.py -user nanaaheni_ -mode automatic -ffmpeg
+        run: python main.py -user nanaaheni_ -mode manual
 
       - name: Upload GDrive
         if: always()
