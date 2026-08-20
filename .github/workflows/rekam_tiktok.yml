@@ -6,7 +6,6 @@ on:
 jobs:
   record_job:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
 
     steps:
       - name: Checkout
@@ -29,12 +28,10 @@ jobs:
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
       - name: Rekam Akun 1
-        timeout-minutes: 1
         continue-on-error: true
         run: python main.py -user nnaaheni -mode manual
 
       - name: Rekam Akun 2
-        timeout-minutes: 1
         continue-on-error: true
         run: python main.py -user nanaaheni_ -mode manual
 
