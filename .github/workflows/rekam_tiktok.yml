@@ -11,37 +11,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Install Dependencies
+      - name: Install Apps & Streamlink
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          pip install pytz -r requirements.txt || pip install pytz
+          pip install streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Jalankan Rekam 1 Menit & Debug
+      - name: Rekam Live TikTok (Streamlink 1 Menit)
         continue-on-error: true
         run: |
-          # Jalankan python di background selama 60 detik
-          python main.py -user ranngusion__ -mode manual &
-          PID=$!
-          sleep 60
-          kill -2 $PID || true
-          sleep 5
+          timeout 60s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+                 "https://www.tiktok.com/@ranngusion__/live" best \
+                 -o "rekaman_ranngusion.mp4" --force || true
 
-      - name: Cek Folder Lokal & Upload ke GDrive
+      - name: Cek & Upload ke GDrive
         if: always()
         run: |
-          echo "Daftar file di direktori saat ini:"
           ls -la
-          echo "Mencari file video secara mendalam:"
-          find . -name "*.mp4"
-          rclone copy ./ gdrive:TikTok_Replays --include "**/*.mp4" --progress
+          rclone copy rekaman_ranngusion.mp4 gdrive:TikTok_Replays --progress
