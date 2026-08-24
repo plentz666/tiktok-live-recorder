@@ -28,9 +28,12 @@ jobs:
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
       - name: Rekam Tes ranngusion__
+        timeout-minutes: 3
         continue-on-error: true
-        timeout-minutes: 1
         run: python main.py -user ranngusion__ -mode manual
+
+      - name: Cek File Video
+        run: ls -la
 
       - name: Upload GDrive
         if: always()
