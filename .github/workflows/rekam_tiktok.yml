@@ -23,16 +23,16 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live TikTok (1 Menit Tes)
+      - name: Rekam Live TikTok
         continue-on-error: true
         run: |
-          yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
-                 --downloader ffmpeg \
-                 --downloader-args "ffmpeg:-t 60" \
-                 -o "rekaman_ranngusion.mp4" \
-                 "https://www.tiktok.com/@ranngusion__/live"
+          timeout 90s yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
+                 --hls-use-mpegts \
+                 -o "hasil_rekam.mp4" \
+                 "https://www.tiktok.com/@ranngusion__/live" || true
 
       - name: Upload Ke GDrive
         if: always()
         run: |
-          rclone copy rekaman_ranngusion.mp4 gdrive:TikTok_Replays --progress
+          ls -la
+          rclone copy ./ gdrive:TikTok_Replays --include "*.mp4" --progress
