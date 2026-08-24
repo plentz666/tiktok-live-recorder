@@ -27,13 +27,26 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Tes ranngusion__
-        timeout-minutes: 3
-        continue-on-error: true
-        run: python main.py -user ranngusion__ -mode manual
+      - name: Rekam Tes ranngusion__ (Metode Manual Jeda)
+        run: |
+          # Jalankan skrip rekam di latar belakang (background)
+          python main.py -user ranngusion__ -mode manual &
+          # Simpan ID prosesnya (PID)
+          PID=$!
+          echo "Rekaman dimulai dengan PID $PID"
+          # Jeda selama 2 menit (120 detik) untuk perekaman
+          sleep 120
+          # Kirim sinyal pemberhentian (lebih halus dari kill)
+          # Cobalah agar skrip menangani sinyal ini untuk menyimpan file
+          kill $PID
+          # Beri jeda 10 detik lagi agar proses penyimpanan selesai
+          sleep 10
+          # Paksa mati jika masih hidup setelah 10 detik
+          kill -9 $PID 2>/dev/null || true
+          echo "Rekaman dihentikan."
 
-      - name: Cek File Video
-        run: ls -la
+      - name: Cek File Video Terbentuk
+        run: ls -la *.mp4 2>/dev/null || echo "Tidak ada file mp4 ditemukan."
 
       - name: Upload GDrive
         if: always()
