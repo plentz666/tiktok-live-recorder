@@ -11,32 +11,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Apps & yt-dlp
+      - name: Install Apps
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-          sudo chmod a+rx /usr/local/bin/yt-dlp
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live (yt-dlp 2 Menit)
-        continue-on-error: true
+      - name: Buat Video Tes (FFmpeg 5 Detik)
         run: |
-          yt-dlp --wait-for-video 10 \
-                 --downloader ffmpeg \
-                 -o "ranngusion__%(upload_date)s.mp4" \
-                 "https://www.tiktok.com/@ranngusion__/live" &
-          PID=$!
-          sleep 120
-          kill -2 $PID || kill $PID
-          sleep 5
+          ffmpeg -f lavfi -i testsrc=duration=5:size=1280x720:rate=30 tes_video.mp4
 
-      - name: Cek & Upload Ke GDrive
-        if: always()
+      - name: Upload GDrive
         run: |
-          ls -la
-          rclone copy ./ gdrive:TikTok_Replays --include "*.mp4" --progress
+          rclone copy tes_video.mp4 gdrive:TikTok_Replays --progress
