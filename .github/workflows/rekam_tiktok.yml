@@ -22,15 +22,21 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live TikTok (Streamlink 1 Menit)
+      - name: Rekam Live nanaaheni_
         continue-on-error: true
         run: |
-          timeout 60s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-                 "https://www.tiktok.com/@ranngusion__/live" best \
-                 -o "rekaman_ranngusion.mp4" --force || true
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+                     "https://www.tiktok.com/@nanaaheni_/live" best \
+                     -o "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4" --force || true
 
-      - name: Cek & Upload ke GDrive
+      - name: Rekam Live nnaaheni
+        continue-on-error: true
+        run: |
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+                     "https://www.tiktok.com/@nnaaheni/live" best \
+                     -o "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4" --force || true
+
+      - name: Upload ke GDrive
         if: always()
         run: |
-          ls -la
-          rclone copy rekaman_ranngusion.mp4 gdrive:TikTok_Replays --progress
+          rclone copy ./ gdrive:TikTok_Replays --include "*.mp4" --progress
