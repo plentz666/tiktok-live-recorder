@@ -27,13 +27,10 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Akun 1
+      - name: Rekam Tes ranngusion__
         continue-on-error: true
-        run: python main.py -user nnaaheni -mode manual
-
-      - name: Rekam Akun 2
-        continue-on-error: true
-        run: python main.py -user nanaaheni_ -mode manual
+        timeout-minutes: 1
+        run: python main.py -user ranngusion__ -mode manual
 
       - name: Upload GDrive
         if: always()
