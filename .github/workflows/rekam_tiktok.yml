@@ -27,16 +27,16 @@ jobs:
         run: |
           streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
                      "https://www.tiktok.com/@nanaaheni_/live" best \
-                     -o "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4" --force || true
+                     -o "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mkv" --force || true
 
       - name: Rekam Live nnaaheni
         continue-on-error: true
         run: |
           streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
                      "https://www.tiktok.com/@nnaaheni/live" best \
-                     -o "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4" --force || true
+                     -o "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mkv" --force || true
 
       - name: Upload ke GDrive
         if: always()
         run: |
-          rclone copy ./ gdrive:TikTok_Replays --include "*.mp4" --progress
+          rclone copy ./ gdrive:TikTok_Replays --include "*.mkv" --include "*.mp4" --progress
