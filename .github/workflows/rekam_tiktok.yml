@@ -22,12 +22,21 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live Test (weexlance - 2 Menit)
+      - name: Rekam Live nanaaheni_
         continue-on-error: true
         run: |
-          timeout 120s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                     "https://www.tiktok.com/@weexlance/live" best \
-                     -o "rekaman_weexlance_$(date +'%Y%m%d_%H%M%S').mkv" --force || true
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                     --http-header "Referer=https://www.tiktok.com/" \
+                     "https://www.tiktok.com/@nanaaheni_/live" best \
+                     -o "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mkv" --force || true
+
+      - name: Rekam Live nnaaheni
+        continue-on-error: true
+        run: |
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                     --http-header "Referer=https://www.tiktok.com/" \
+                     "https://www.tiktok.com/@nnaaheni/live" best \
+                     -o "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mkv" --force || true
 
       - name: Upload ke GDrive
         if: always()
