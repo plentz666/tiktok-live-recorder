@@ -27,11 +27,15 @@ jobs:
         run: |
           timeout 120s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                      --http-header "Referer=https://www.tiktok.com/" \
-                     --ffmpeg-movflags "faststart" \
                      "https://www.tiktok.com/@weexlance/live" best \
-                     -o "rekaman_weexlance_$(date +'%Y%m%d_%H%M%S').mp4" --force || true
+                     -o "raw_weexlance.mp4" --force || true
+
+          if [ -f "raw_weexlance.mp4" ] && [ -s "raw_weexlance.mp4" ]; then
+            ffmpeg -y -i "raw_weexlance.mp4" -c copy -movflags +faststart "rekaman_weexlance_$(date +'%Y%m%d_%H%M%S').mp4"
+            rm "raw_weexlance.mp4"
+          fi
 
       - name: Upload ke GDrive
         if: always()
         run: |
-          rclone copy ./ gdrive:TikTok_Replays --include "*.mp4" --progress
+          rclone copy ./ gdrive:TikTok_Replays --include "rekaman_*.mp4" --progress
