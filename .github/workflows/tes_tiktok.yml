@@ -1,0 +1,43 @@
+name: 🧪 Uji Coba / Tes Rekam
+
+on:
+  workflow_dispatch:
+
+jobs:
+  record_job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Apps & yt-dlp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg rclone
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
+
+      - name: Setup GDrive
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
+
+      - name: Tes Rekam Akun Apapun (Limit 2 Menit)
+        continue-on-error: true
+        run: |
+          timeout 120s yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                     --referer "https://www.tiktok.com/" \
+                     --concurrent-fragments 5 \
+                     -o "raw_tes.ts" \
+                     "https://www.tiktok.com/@weexlance/live" || true
+
+          if [ -f "raw_tes.ts" ] && [ -s "raw_tes.ts" ]; then
+            ffmpeg -y -i "raw_tes.ts" -c copy -movflags +faststart "tes_rekaman_$(date +'%Y%m%d_%H%M%S').mp4"
+            rm "raw_tes.ts"
+          fi
+
+      - name: Upload ke GDrive
+        if: always()
+        run: |
+          rclone copy ./ gdrive:TikTok_Replays --include "tes_rekaman_*.mp4" --progress
