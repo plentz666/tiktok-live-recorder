@@ -30,8 +30,8 @@ jobs:
                      "https://www.tiktok.com/@weexlance/live" best \
                      -o "temp_weexlance.mkv" --force || true
 
-          if [ -f "temp_weexlance.mkv" ]; then
-            ffmpeg -i "temp_weexlance.mkv" -c copy -movflags +faststart "rekaman_weexlance_$(date +'%Y%m%d_%H%M%S').mp4"
+          if [ -f "temp_weexlance.mkv" ] && [ -s "temp_weexlance.mkv" ]; then
+            ffmpeg -y -i "temp_weexlance.mkv" -c copy -movflags +faststart "rekaman_weexlance_$(date +'%Y%m%d_%H%M%S').mp4"
             rm "temp_weexlance.mkv"
           fi
 
