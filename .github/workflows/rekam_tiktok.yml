@@ -26,11 +26,12 @@ jobs:
       - name: Rekam Live Test (weexlance - 2 Menit)
         continue-on-error: true
         run: |
-          timeout 120s yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                     --referer "https://www.tiktok.com/" \
-                     --concurrent-fragments 5 \
-                     -o "raw_weexlance.ts" \
-                     "https://www.tiktok.com/@weexlance/live" || true
+          yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                 --referer "https://www.tiktok.com/" \
+                 --downloader ffmpeg \
+                 --downloader-args "ffmpeg:-t 120" \
+                 -o "raw_weexlance.ts" \
+                 "https://www.tiktok.com/@weexlance/live" || true
 
           if [ -f "raw_weexlance.ts" ] && [ -s "raw_weexlance.ts" ]; then
             ffmpeg -y -i "raw_weexlance.ts" -c copy -movflags +faststart "rekaman_weexlance_$(date +'%Y%m%d_%H%M%S').mp4"
