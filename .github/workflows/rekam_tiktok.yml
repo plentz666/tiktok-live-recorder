@@ -27,7 +27,7 @@ jobs:
         run: |
           timeout 120s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                      --http-header "Referer=https://www.tiktok.com/" \
-                     "https://www.tiktok.com/@weexlance/live" best \
+                     "https://www.tiktok.com/@weexlance/live" h264_hd,h264_best,best \
                      -o "raw_weexlance.ts" --force || true
 
           if [ -f "raw_weexlance.ts" ] && [ -s "raw_weexlance.ts" ]; then
