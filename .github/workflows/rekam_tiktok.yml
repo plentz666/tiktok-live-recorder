@@ -15,28 +15,21 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          pip install streamlink
+          pip install --upgrade streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live nanaaheni_
+      - name: Rekam Live Test (weexlance - 2 Menit)
         continue-on-error: true
         run: |
-          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-                     "https://www.tiktok.com/@nanaaheni_/live" best \
-                     -o "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4" --force || true
-
-      - name: Rekam Live nnaaheni
-        continue-on-error: true
-        run: |
-          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-                     "https://www.tiktok.com/@nnaaheni/live" best \
-                     -o "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4" --force || true
+          timeout 120s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                     "https://www.tiktok.com/@weexlance/live" best \
+                     -o "rekaman_weexlance_$(date +'%Y%m%d_%H%M%S').mkv" --force || true
 
       - name: Upload ke GDrive
         if: always()
         run: |
-          rclone copy ./ gdrive:TikTok_Replays --include "*.mp4" --progress
+          rclone copy ./ gdrive:TikTok_Replays --include "*.mkv" --include "*.mp4" --progress
