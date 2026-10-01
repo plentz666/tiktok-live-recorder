@@ -36,17 +36,17 @@ jobs:
               -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4" || true
           fi
 
-      - name: Rekam Live nnaaheni (Direct FFmpeg Reconnect)
+      - name: Rekam Live ranngusion__ (Direct FFmpeg Reconnect)
         continue-on-error: true
         run: |
-          STREAM_URL=$(yt-dlp -g "https://www.tiktok.com/@nnaaheni/live" 2>/dev/null || true)
+          STREAM_URL=$(yt-dlp -g "https://www.tiktok.com/@ranngusion__/live" 2>/dev/null || true)
           if [ -n "$STREAM_URL" ]; then
             ffmpeg -y \
               -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
               -err_detect ignore_err \
               -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
               -i "$STREAM_URL" \
-              -c copy -movflags +faststart "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4" || true
+              -c copy -movflags +faststart "rekaman_ranngusion__$(date +'%Y%m%d_%H%M%S').mp4" || true
           fi
 
       - name: Upload ke GDrive
