@@ -22,38 +22,22 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live viplalicer (Auto Reconnect)
+      - name: Rekam Live viplalicer (Durasi 10 Menit)
         continue-on-error: true
         run: |
-          mkdir -p parts_viplalicer
-          COUNTER=1
-          FAIL_COUNT=0
-          echo "Memulai perekaman viplalicer (Durasi Maksimal 10 Menit)..."
+          echo "Memulai perekaman viplalicer..."
+          
+          # Rekam langsung stream dengan Streamlink ke file temporer
+          timeout 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                     --http-header "Referer=https://www.tiktok.com/" \
+                     --stream-segment-threads 2 \
+                     "https://www.tiktok.com/@viplalicer/live" best \
+                     -o "raw_stream.ts" --force || true
 
-          while [ $FAIL_COUNT -lt 5 ]; do
-            FILE_OUT="parts_viplalicer/part_$(printf "%03d" $COUNTER).ts"
-
-            timeout 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                       --http-header "Referer=https://www.tiktok.com/" \
-                       --stream-segment-threads 2 \
-                       --hls-live-restart \
-                       "https://www.tiktok.com/@viplalicer/live" best \
-                       -o "$FILE_OUT" --force || true
-
-            if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
-              COUNTER=$((COUNTER+1))
-              FAIL_COUNT=0
-              break
-            else
-              rm -f "$FILE_OUT"
-              FAIL_COUNT=$((FAIL_COUNT+1))
-              sleep 5
-            fi
-          done
-
-          if [ "$(ls -A parts_viplalicer 2>/dev/null)" ]; then
-            printf "file '%s'\n" parts_viplalicer/*.ts > list_viplalicer.txt
-            ffmpeg -fflags +genpts+discardcorrupt -f concat -safe 0 -i list_viplalicer.txt -map 0:v? -map 0:a? -c:v copy -c:a copy -bsf:a aac_adtstoasc -movflags +faststart "rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
+          # Transcode ke H.264 standar MP4 agar gambar pasti muncul
+          if [ -f "raw_stream.ts" ] && [ -s "raw_stream.ts" ]; then
+            ffmpeg -y -i raw_stream.ts -c:v libx264 -preset ultrafast -crf 23 -c:a aac -b:a 128k -movflags +faststart "rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
+            rm -f raw_stream.ts
           fi
 
       - name: Upload ke GDrive
