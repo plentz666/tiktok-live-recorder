@@ -13,37 +13,53 @@ jobs:
 
       - name: Install Apps & Streamlink
         run: |
-          export DEBIAN_FRONTEND=noninteractive
-          sudo apt-get update -y -qq
-          sudo apt-get install -y --no-install-recommends ffmpeg rclone python3-pip
-          pip install --no-cache-dir --upgrade streamlink --break-system-packages || pip install --no-cache-dir --upgrade streamlink
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg rclone
+          pip install --upgrade streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
-          if [ -n "${{ secrets.RCLONE_CONFIG_DATA }}" ]; then
-            printf "%s" "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
-          fi
+          echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live viplalicer (10 Menit & Fix Video)
+      - name: Rekam Live viplalicer (Auto Reconnect)
+        continue-on-error: true
         run: |
-          mkdir -p build_output
-          OUT_FILE="build_output/rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
-          echo "Memulai perekaman viplalicer selama 10 menit..."
+          mkdir -p parts_viplalicer
+          COUNTER=1
+          FAIL_COUNT=0
+          echo "Memulai perekaman viplalicer..."
 
-          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                     --http-header "Referer=https://www.tiktok.com/" \
-                     --stream-segment-threads 2 \
-                     --hls-duration 00:10:00 \
-                     "https://www.tiktok.com/@viplalicer/live" best -O | \
-          ffmpeg -y -i pipe:0 -c:v libx264 -preset ultrafast -crf 23 -c:a aac -b:a 128k -movflags +faststart "$OUT_FILE" || true
+          while [ $FAIL_COUNT -lt 5 ]; do
+            FILE_OUT="parts_viplalicer/part_$(printf "%03d" $COUNTER).ts"
+
+            timeout 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                       --http-header "Referer=https://www.tiktok.com/" \
+                       --stream-segment-threads 2 \
+                       --hls-live-restart \
+                       "https://www.tiktok.com/@viplalicer/live" best \
+                       -o "$FILE_OUT" --force || true
+
+            if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
+              COUNTER=$((COUNTER+1))
+              FAIL_COUNT=0
+            else
+              rm -f "$FILE_OUT"
+              FAIL_COUNT=$((FAIL_COUNT+1))
+              sleep 5
+            fi
+          done
+
+          if [ "$(ls -A parts_viplalicer 2>/dev/null)" ]; then
+            printf "file '%s'\n" parts_viplalicer/*.ts > list_viplalicer.txt
+            ffmpeg -f concat -safe 0 -i list_viplalicer.txt -c copy -movflags +faststart "rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
+          fi
 
       - name: Upload ke GDrive
         if: always()
         run: |
+          mkdir -p build_output
+          mv rekaman_*.mp4 build_output/ 2>/dev/null || true
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            echo "Mengunggah hasil rekaman ke Google Drive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
-          else
-            echo "Tidak ada file video yang ditemukan untuk diunggah."
           fi
