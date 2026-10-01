@@ -22,30 +22,23 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live viplalicer (Tepat 10 Menit)
+      - name: Rekam Live viplalicer (Tepat 10 Menit & Fix Video)
         continue-on-error: true
         run: |
-          mkdir -p parts_viplalicer
-          FILE_OUT="parts_viplalicer/part_001.ts"
+          mkdir -p build_output
+          OUT_FILE="build_output/rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
           echo "Memulai perekaman viplalicer (Maksimal 10 Menit)..."
 
+          # Streamlink stream langsung ke FFmpeg, FFmpeg paksa petakan video + audio (yuv420p)
           timeout 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                      --http-header "Referer=https://www.tiktok.com/" \
                      --stream-segment-threads 2 \
-                     --hls-live-restart \
-                     "https://www.tiktok.com/@viplalicer/live" best \
-                     -o "$FILE_OUT" --force || true
-
-          if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
-            printf "file '%s'\n" parts_viplalicer/*.ts > list_viplalicer.txt
-            ffmpeg -f concat -safe 0 -i list_viplalicer.txt -c:v libx264 -preset ultrafast -crf 23 -c:a aac -b:a 128k -movflags +faststart "rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
-          fi
+                     "https://www.tiktok.com/@viplalicer/live" best -O | \
+          ffmpeg -y -i pipe:0 -analyzeduration 10M -probesize 10M -vf "format=yuv420p" -c:v libx264 -preset ultrafast -crf 23 -c:a aac -b:a 128k -movflags +faststart "$OUT_FILE" || true
 
       - name: Upload ke GDrive
         if: always()
         run: |
-          mkdir -p build_output
-          mv rekaman_*.mp4 build_output/ 2>/dev/null || true
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           fi
