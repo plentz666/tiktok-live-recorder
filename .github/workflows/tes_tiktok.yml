@@ -28,12 +28,12 @@ jobs:
           mkdir -p parts_ranngusion__
           COUNTER=1
           FAIL_COUNT=0
-          echo "Memulai perekaman ranngusion__..."
+          echo "Memulai perekaman ranngusion__ (Durasi Maksimal 10 Menit)..."
 
           while [ $FAIL_COUNT -lt 5 ]; do
             FILE_OUT="parts_ranngusion__/part_$(printf "%03d" $COUNTER).ts"
 
-            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+            timeout 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                        --http-header "Referer=https://www.tiktok.com/" \
                        --stream-segment-threads 2 \
                        --hls-live-restart \
@@ -43,6 +43,7 @@ jobs:
             if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
               COUNTER=$((COUNTER+1))
               FAIL_COUNT=0
+              break # Keluar dari loop setelah durasi timeout tercapai
             else
               rm -f "$FILE_OUT"
               FAIL_COUNT=$((FAIL_COUNT+1))
