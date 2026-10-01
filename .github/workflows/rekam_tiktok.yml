@@ -28,6 +28,9 @@ jobs:
         run: |
           yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                  --referer "https://www.tiktok.com/" \
+                 --hls-use-mpegts \
+                 --fragment-retries infinite \
+                 --retry-sleep 2 \
                  -o "raw_nanaaheni.ts" \
                  "https://www.tiktok.com/@nanaaheni_/live" || true
 
@@ -41,6 +44,9 @@ jobs:
         run: |
           yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                  --referer "https://www.tiktok.com/" \
+                 --hls-use-mpegts \
+                 --fragment-retries infinite \
+                 --retry-sleep 2 \
                  -o "raw_nnaaheni.ts" \
                  "https://www.tiktok.com/@nnaaheni/live" || true
 
@@ -52,4 +58,10 @@ jobs:
       - name: Upload ke GDrive
         if: always()
         run: |
-          rclone copy ./ gdrive:TikTok_Replays --include "rekaman_*.mp4" --progress
+          mkdir -p build_output
+          mv rekaman_*.mp4 build_output/ 2>/dev/null || true
+          if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
+            rclone copy build_output/ gdrive:TikTok_Replays --progress
+          else
+            echo "Tidak ada rekaman baru."
+          fi
