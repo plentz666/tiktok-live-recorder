@@ -22,34 +22,76 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live nanaaheni_
+      - name: Rekam Live nanaaheni_ (Auto Reconnect & Robust FFmpeg)
         continue-on-error: true
         run: |
-          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                     --http-header "Referer=https://www.tiktok.com/" \
-                     --retry-streams 5 \
-                     --retry-max 10 \
-                     "https://www.tiktok.com/@nanaaheni_/live" h264_hd,h264_best,720p,best \
-                     -o "raw_nanaaheni.ts" --force || true
+          mkdir -p parts_nanaaheni
+          COUNTER=1
+          FAIL_COUNT=0
+          echo "Memulai perekaman nanaaheni_..."
+          
+          while [ $FAIL_COUNT -lt 6 ]; do
+            FILE_OUT="parts_nanaaheni/part_$(printf "%03d" $COUNTER).ts"
+            
+            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                       --http-header "Referer=https://www.tiktok.com/" \
+                       --hls-live-restart \
+                       --hls-segment-threads 3 \
+                       --retry-streams 5 \
+                       "https://www.tiktok.com/@nanaaheni_/live" best \
+                       -o "$FILE_OUT" --force || true
+            
+            if [ -f "$FILE_OUT" ] && [ $(stat -c%s "$FILE_OUT" 2>/dev/null || echo 0) -gt 100000 ]; then
+              COUNTER=$((COUNTER+1))
+              FAIL_COUNT=0
+              sleep 2
+            else
+              rm -f "$FILE_OUT"
+              FAIL_COUNT=$((FAIL_COUNT+1))
+              echo "Reconnecting ($FAIL_COUNT/6)..."
+              sleep 5
+            fi
+          done
 
-          if [ -f "raw_nanaaheni.ts" ] && [ -s "raw_nanaaheni.ts" ]; then
-            ffmpeg -y -i "raw_nanaaheni.ts" -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
-            rm "raw_nanaaheni.ts"
+          if [ "$(ls -A parts_nanaaheni 2>/dev/null)" ]; then
+            printf "file '%s'\n" parts_nanaaheni/*.ts > list_nanaaheni.txt
+            ffmpeg -y -err_detect ignore_err -f concat -safe 0 -i list_nanaaheni.txt -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4" || true
           fi
 
-      - name: Rekam Live nnaaheni
+      - name: Rekam Live nnaaheni (Auto Reconnect & Robust FFmpeg)
         continue-on-error: true
         run: |
-          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                     --http-header "Referer=https://www.tiktok.com/" \
-                     --retry-streams 5 \
-                     --retry-max 10 \
-                     "https://www.tiktok.com/@nnaaheni/live" h264_hd,h264_best,720p,best \
-                     -o "raw_nnaaheni.ts" --force || true
+          mkdir -p parts_nnaaheni
+          COUNTER=1
+          FAIL_COUNT=0
+          echo "Memulai perekaman nnaaheni..."
+          
+          while [ $FAIL_COUNT -lt 6 ]; do
+            FILE_OUT="parts_nnaaheni/part_$(printf "%03d" $COUNTER).ts"
+            
+            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                       --http-header "Referer=https://www.tiktok.com/" \
+                       --hls-live-restart \
+                       --hls-segment-threads 3 \
+                       --retry-streams 5 \
+                       "https://www.tiktok.com/@nnaaheni/live" best \
+                       -o "$FILE_OUT" --force || true
+            
+            if [ -f "$FILE_OUT" ] && [ $(stat -c%s "$FILE_OUT" 2>/dev/null || echo 0) -gt 100000 ]; then
+              COUNTER=$((COUNTER+1))
+              FAIL_COUNT=0
+              sleep 2
+            else
+              rm -f "$FILE_OUT"
+              FAIL_COUNT=$((FAIL_COUNT+1))
+              echo "Reconnecting ($FAIL_COUNT/6)..."
+              sleep 5
+            fi
+          done
 
-          if [ -f "raw_nnaaheni.ts" ] && [ -s "raw_nnaaheni.ts" ]; then
-            ffmpeg -y -i "raw_nnaaheni.ts" -c copy -movflags +faststart "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
-            rm "raw_nnaaheni.ts"
+          if [ "$(ls -A parts_nnaaheni 2>/dev/null)" ]; then
+            printf "file '%s'\n" parts_nnaaheni/*.ts > list_nnaaheni.txt
+            ffmpeg -y -err_detect ignore_err -f concat -safe 0 -i list_nnaaheni.txt -c copy -movflags +faststart "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4" || true
           fi
 
       - name: Upload ke GDrive
