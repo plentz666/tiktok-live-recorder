@@ -22,35 +22,21 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live viplalicer (Auto Reconnect)
+      - name: Rekam Live viplalicer (Tepat 10 Menit)
         continue-on-error: true
         run: |
           mkdir -p parts_viplalicer
-          COUNTER=1
-          FAIL_COUNT=0
-          echo "Memulai perekaman viplalicer..."
+          FILE_OUT="parts_viplalicer/part_001.ts"
+          echo "Memulai perekaman viplalicer (Maksimal 10 Menit)..."
 
-          while [ $FAIL_COUNT -lt 5 ]; do
-            FILE_OUT="parts_viplalicer/part_$(printf "%03d" $COUNTER).ts"
+          timeout 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                     --http-header "Referer=https://www.tiktok.com/" \
+                     --stream-segment-threads 2 \
+                     --hls-live-restart \
+                     "https://www.tiktok.com/@viplalicer/live" best \
+                     -o "$FILE_OUT" --force || true
 
-            timeout 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                       --http-header "Referer=https://www.tiktok.com/" \
-                       --stream-segment-threads 2 \
-                       --hls-live-restart \
-                       "https://www.tiktok.com/@viplalicer/live" best \
-                       -o "$FILE_OUT" --force || true
-
-            if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
-              COUNTER=$((COUNTER+1))
-              FAIL_COUNT=0
-            else
-              rm -f "$FILE_OUT"
-              FAIL_COUNT=$((FAIL_COUNT+1))
-              sleep 5
-            fi
-          done
-
-          if [ "$(ls -A parts_viplalicer 2>/dev/null)" ]; then
+          if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
             printf "file '%s'\n" parts_viplalicer/*.ts > list_viplalicer.txt
             ffmpeg -f concat -safe 0 -i list_viplalicer.txt -c copy -movflags +faststart "rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
           fi
