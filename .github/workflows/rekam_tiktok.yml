@@ -11,42 +11,81 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Apps & yt-dlp
+      - name: Install Apps & Streamlink
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-          sudo chmod a+rx /usr/local/bin/yt-dlp
+          pip install --upgrade streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live nanaaheni_ (Direct FFmpeg Reconnect)
+      - name: Rekam Live nanaaheni_ (Auto Reconnect)
         continue-on-error: true
         run: |
-          STREAM_URL=$(yt-dlp -g "https://www.tiktok.com/@nanaaheni_/live" 2>/dev/null || true)
-          if [ -n "$STREAM_URL" ]; then
-            ffmpeg -y \
-              -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
-              -err_detect ignore_err \
-              -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-              -i "$STREAM_URL" \
-              -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4" || true
+          mkdir -p parts_nanaaheni
+          COUNTER=1
+          FAIL_COUNT=0
+          echo "Memulai perekaman nanaaheni_..."
+          
+          while [ $FAIL_COUNT -lt 5 ]; do
+            FILE_OUT="parts_nanaaheni/part_$(printf "%03d" $COUNTER).ts"
+            
+            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                       --http-header "Referer=https://www.tiktok.com/" \
+                       --stream-segment-threads 2 \
+                       --hls-live-restart \
+                       "https://www.tiktok.com/@nanaaheni_/live" best \
+                       -o "$FILE_OUT" --force || true
+            
+            if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
+              COUNTER=$((COUNTER+1))
+              FAIL_COUNT=0
+            else
+              rm -f "$FILE_OUT"
+              FAIL_COUNT=$((FAIL_COUNT+1))
+              sleep 5
+            fi
+          done
+
+          if [ "$(ls -A parts_nanaaheni 2>/dev/null)" ]; then
+            printf "file '%s'\n" parts_nanaaheni/*.ts > list_nanaaheni.txt
+            ffmpeg -f concat -safe 0 -i list_nanaaheni.txt -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
           fi
 
-      - name: Rekam Live ranngusion__ (Direct FFmpeg Reconnect)
+      - name: Rekam Live ranngusion__ (Auto Reconnect)
         continue-on-error: true
         run: |
-          STREAM_URL=$(yt-dlp -g "https://www.tiktok.com/@ranngusion__/live" 2>/dev/null || true)
-          if [ -n "$STREAM_URL" ]; then
-            ffmpeg -y \
-              -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 5 \
-              -err_detect ignore_err \
-              -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-              -i "$STREAM_URL" \
-              -c copy -movflags +faststart "rekaman_ranngusion__$(date +'%Y%m%d_%H%M%S').mp4" || true
+          mkdir -p parts_ranngusion__
+          COUNTER=1
+          FAIL_COUNT=0
+          echo "Memulai perekaman ranngusion__..."
+          
+          while [ $FAIL_COUNT -lt 5 ]; do
+            FILE_OUT="parts_ranngusion__/part_$(printf "%03d" $COUNTER).ts"
+            
+            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                       --http-header "Referer=https://www.tiktok.com/" \
+                       --stream-segment-threads 2 \
+                       --hls-live-restart \
+                       "https://www.tiktok.com/@ranngusion__/live" best \
+                       -o "$FILE_OUT" --force || true
+            
+            if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
+              COUNTER=$((COUNTER+1))
+              FAIL_COUNT=0
+            else
+              rm -f "$FILE_OUT"
+              FAIL_COUNT=$((FAIL_COUNT+1))
+              sleep 5
+            fi
+          done
+
+          if [ "$(ls -A parts_ranngusion__ 2>/dev/null)" ]; then
+            printf "file '%s'\n" parts_ranngusion__/*.ts > list_ranngusion__.txt
+            ffmpeg -f concat -safe 0 -i list_ranngusion__.txt -c copy -movflags +faststart "rekaman_ranngusion__$(date +'%Y%m%d_%H%M%S').mp4"
           fi
 
       - name: Upload ke GDrive
