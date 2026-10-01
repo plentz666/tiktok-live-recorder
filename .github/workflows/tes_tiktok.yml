@@ -13,14 +13,17 @@ jobs:
 
       - name: Install Apps & Streamlink
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg rclone
-          pip install --upgrade streamlink
+          export DEBIAN_FRONTEND=noninteractive
+          sudo apt-get update -y -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg rclone python3-pip
+          pip install --no-cache-dir --upgrade streamlink --break-system-packages || pip install --no-cache-dir --upgrade streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
-          echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
+          if [ -n "${{ secrets.RCLONE_CONFIG_DATA }}" ]; then
+            printf "%s" "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
+          fi
 
       - name: Rekam Live viplalicer (10 Menit & Fix Video)
         run: |
@@ -28,7 +31,6 @@ jobs:
           OUT_FILE="build_output/rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
           echo "Memulai perekaman viplalicer selama 10 menit..."
 
-          # Streamlink merekam 10 menit (--hls-duration) & langsung ditranscode oleh FFmpeg via Pipe
           streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                      --http-header "Referer=https://www.tiktok.com/" \
                      --stream-segment-threads 2 \
