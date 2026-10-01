@@ -25,12 +25,11 @@ jobs:
       - name: Rekam Live viplalicer (Tepat 10 Menit)
         run: |
           mkdir -p temp_record
-          echo "Memulai perekaman viplalicer (10 Menit)..."
+          echo "Memulai perekaman viplalicer (Maksimal 10 Menit)..."
 
-          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+          timeout --foreground 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                      --http-header "Referer=https://www.tiktok.com/" \
                      --stream-segment-threads 2 \
-                     --hls-duration 00:10:00 \
                      "https://www.tiktok.com/@viplalicer/live" best \
                      -o "temp_record/raw.ts" --force || true
 
