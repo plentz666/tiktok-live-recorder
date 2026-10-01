@@ -22,28 +22,28 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live ranngusion__ (Auto Reconnect)
+      - name: Rekam Live viplalicer (Auto Reconnect)
         continue-on-error: true
         run: |
-          mkdir -p parts_ranngusion__
+          mkdir -p parts_viplalicer
           COUNTER=1
           FAIL_COUNT=0
-          echo "Memulai perekaman ranngusion__ (Durasi Maksimal 10 Menit)..."
+          echo "Memulai perekaman viplalicer (Durasi Maksimal 10 Menit)..."
 
           while [ $FAIL_COUNT -lt 5 ]; do
-            FILE_OUT="parts_ranngusion__/part_$(printf "%03d" $COUNTER).ts"
+            FILE_OUT="parts_viplalicer/part_$(printf "%03d" $COUNTER).ts"
 
             timeout 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                        --http-header "Referer=https://www.tiktok.com/" \
                        --stream-segment-threads 2 \
                        --hls-live-restart \
-                       "https://www.tiktok.com/@ranngusion__/live" best \
+                       "https://www.tiktok.com/@viplalicer/live" best \
                        -o "$FILE_OUT" --force || true
 
             if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
               COUNTER=$((COUNTER+1))
               FAIL_COUNT=0
-              break # Keluar dari loop setelah durasi timeout tercapai
+              break
             else
               rm -f "$FILE_OUT"
               FAIL_COUNT=$((FAIL_COUNT+1))
@@ -51,9 +51,9 @@ jobs:
             fi
           done
 
-          if [ "$(ls -A parts_ranngusion__ 2>/dev/null)" ]; then
-            printf "file '%s'\n" parts_ranngusion__/*.ts > list_ranngusion__.txt
-            ffmpeg -f concat -safe 0 -i list_ranngusion__.txt -c copy -movflags +faststart "rekaman_ranngusion__$(date +'%Y%m%d_%H%M%S').mp4"
+          if [ "$(ls -A parts_viplalicer 2>/dev/null)" ]; then
+            printf "file '%s'\n" parts_viplalicer/*.ts > list_viplalicer.txt
+            ffmpeg -fflags +genpts -f concat -safe 0 -i list_viplalicer.txt -c copy -bsf:a aac_adtstoasc -movflags +faststart "rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
           fi
 
       - name: Upload ke GDrive
