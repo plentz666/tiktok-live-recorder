@@ -22,29 +22,26 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live viplalicer (Durasi 10 Menit)
-        continue-on-error: true
+      - name: Rekam Live viplalicer (10 Menit & Fix Video)
         run: |
-          echo "Memulai perekaman viplalicer..."
-          
-          # Rekam langsung stream dengan Streamlink ke file temporer
-          timeout 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+          mkdir -p build_output
+          OUT_FILE="build_output/rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
+          echo "Memulai perekaman viplalicer selama 10 menit..."
+
+          # Streamlink merekam 10 menit (--hls-duration) & langsung ditranscode oleh FFmpeg via Pipe
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                      --http-header "Referer=https://www.tiktok.com/" \
                      --stream-segment-threads 2 \
-                     "https://www.tiktok.com/@viplalicer/live" best \
-                     -o "raw_stream.ts" --force || true
-
-          # Transcode ke H.264 standar MP4 agar gambar pasti muncul
-          if [ -f "raw_stream.ts" ] && [ -s "raw_stream.ts" ]; then
-            ffmpeg -y -i raw_stream.ts -c:v libx264 -preset ultrafast -crf 23 -c:a aac -b:a 128k -movflags +faststart "rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
-            rm -f raw_stream.ts
-          fi
+                     --hls-duration 00:10:00 \
+                     "https://www.tiktok.com/@viplalicer/live" best -O | \
+          ffmpeg -y -i pipe:0 -c:v libx264 -preset ultrafast -crf 23 -c:a aac -b:a 128k -movflags +faststart "$OUT_FILE" || true
 
       - name: Upload ke GDrive
         if: always()
         run: |
-          mkdir -p build_output
-          mv rekaman_*.mp4 build_output/ 2>/dev/null || true
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
+            echo "Mengunggah hasil rekaman ke Google Drive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
+          else
+            echo "Tidak ada file video yang ditemukan untuk diunggah."
           fi
