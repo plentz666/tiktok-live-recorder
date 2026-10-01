@@ -11,12 +11,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Apps & yt-dlp
+      - name: Install Apps & Streamlink
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-          sudo chmod a+rx /usr/local/bin/yt-dlp
+          pip install --upgrade streamlink
 
       - name: Setup GDrive
         run: |
@@ -26,13 +25,12 @@ jobs:
       - name: Rekam Live nanaaheni_
         continue-on-error: true
         run: |
-          yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                 --referer "https://www.tiktok.com/" \
-                 --hls-use-mpegts \
-                 --fragment-retries infinite \
-                 --retry-sleep 2 \
-                 -o "raw_nanaaheni.ts" \
-                 "https://www.tiktok.com/@nanaaheni_/live" || true
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                     --http-header "Referer=https://www.tiktok.com/" \
+                     --retry-streams 5 \
+                     --retry-max 10 \
+                     "https://www.tiktok.com/@nanaaheni_/live" h264_hd,h264_best,720p,best \
+                     -o "raw_nanaaheni.ts" --force || true
 
           if [ -f "raw_nanaaheni.ts" ] && [ -s "raw_nanaaheni.ts" ]; then
             ffmpeg -y -i "raw_nanaaheni.ts" -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
@@ -42,13 +40,12 @@ jobs:
       - name: Rekam Live nnaaheni
         continue-on-error: true
         run: |
-          yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                 --referer "https://www.tiktok.com/" \
-                 --hls-use-mpegts \
-                 --fragment-retries infinite \
-                 --retry-sleep 2 \
-                 -o "raw_nnaaheni.ts" \
-                 "https://www.tiktok.com/@nnaaheni/live" || true
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                     --http-header "Referer=https://www.tiktok.com/" \
+                     --retry-streams 5 \
+                     --retry-max 10 \
+                     "https://www.tiktok.com/@nnaaheni/live" h264_hd,h264_best,720p,best \
+                     -o "raw_nnaaheni.ts" --force || true
 
           if [ -f "raw_nnaaheni.ts" ] && [ -s "raw_nnaaheni.ts" ]; then
             ffmpeg -y -i "raw_nnaaheni.ts" -c copy -movflags +faststart "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
@@ -62,6 +59,4 @@ jobs:
           mv rekaman_*.mp4 build_output/ 2>/dev/null || true
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
             rclone copy build_output/ gdrive:TikTok_Replays --progress
-          else
-            echo "Tidak ada rekaman baru."
           fi
