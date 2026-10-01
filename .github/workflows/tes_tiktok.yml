@@ -23,28 +23,28 @@ jobs:
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
       - name: Rekam Live viplalicer (Tepat 10 Menit)
-        continue-on-error: true
         run: |
           mkdir -p temp_record
           echo "Memulai perekaman viplalicer (10 Menit)..."
 
-          timeout 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                      --http-header "Referer=https://www.tiktok.com/" \
                      --stream-segment-threads 2 \
+                     --hls-duration 00:10:00 \
                      "https://www.tiktok.com/@viplalicer/live" best \
                      -o "temp_record/raw.ts" --force || true
 
-      - name: Transcode ke MP4 (Fix Black Screen)
+      - name: Remux ke MP4 (Fix Header & Fast Copy)
         run: |
           mkdir -p build_output
           OUT_FILE="build_output/rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
 
           if [ -f "temp_record/raw.ts" ] && [ -s "temp_record/raw.ts" ]; then
-            echo "Mengonversi video ke format H.264 (yuv420p)..."
-            ffmpeg -y -i temp_record/raw.ts -vf "format=yuv420p" -c:v libx264 -preset ultrafast -crf 23 -c:a aac -b:a 128k -movflags +faststart "$OUT_FILE"
+            echo "Memperbaiki header stream & meremux ke MP4..."
+            ffmpeg -y -fflags +genpts+discardcorrupt -i temp_record/raw.ts -map 0:v? -map 0:a? -c copy -bsf:a aac_adtstoasc -movflags +faststart "$OUT_FILE"
             rm -rf temp_record
           else
-            echo "File mentah tidak ditemukan atau kosong."
+            echo "File mentah tidak ditemukan."
           fi
 
       - name: Upload ke GDrive
