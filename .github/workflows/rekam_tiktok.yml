@@ -29,17 +29,17 @@ jobs:
           COUNTER=1
           FAIL_COUNT=0
           echo "Memulai perekaman nanaaheni_..."
-          
+
           while [ $FAIL_COUNT -lt 5 ]; do
             FILE_OUT="parts_nanaaheni/part_$(printf "%03d" $COUNTER).ts"
-            
+
             streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                        --http-header "Referer=https://www.tiktok.com/" \
                        --stream-segment-threads 2 \
                        --hls-live-restart \
                        "https://www.tiktok.com/@nanaaheni_/live" best \
                        -o "$FILE_OUT" --force || true
-            
+
             if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
               COUNTER=$((COUNTER+1))
               FAIL_COUNT=0
@@ -55,24 +55,24 @@ jobs:
             ffmpeg -f concat -safe 0 -i list_nanaaheni.txt -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
           fi
 
-      - name: Rekam Live ranngusion__ (Auto Reconnect)
+      - name: Rekam Live nnaaheni (Auto Reconnect)
         continue-on-error: true
         run: |
-          mkdir -p parts_ranngusion__
+          mkdir -p parts_nnaaheni
           COUNTER=1
           FAIL_COUNT=0
-          echo "Memulai perekaman ranngusion__..."
-          
+          echo "Memulai perekaman nnaaheni..."
+
           while [ $FAIL_COUNT -lt 5 ]; do
-            FILE_OUT="parts_ranngusion__/part_$(printf "%03d" $COUNTER).ts"
-            
+            FILE_OUT="parts_nnaaheni/part_$(printf "%03d" $COUNTER).ts"
+
             streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                        --http-header "Referer=https://www.tiktok.com/" \
                        --stream-segment-threads 2 \
                        --hls-live-restart \
-                       "https://www.tiktok.com/@ranngusion__/live" best \
+                       "https://www.tiktok.com/@nnaaheni/live" best \
                        -o "$FILE_OUT" --force || true
-            
+
             if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
               COUNTER=$((COUNTER+1))
               FAIL_COUNT=0
@@ -83,9 +83,9 @@ jobs:
             fi
           done
 
-          if [ "$(ls -A parts_ranngusion__ 2>/dev/null)" ]; then
-            printf "file '%s'\n" parts_ranngusion__/*.ts > list_ranngusion__.txt
-            ffmpeg -f concat -safe 0 -i list_ranngusion__.txt -c copy -movflags +faststart "rekaman_ranngusion__$(date +'%Y%m%d_%H%M%S').mp4"
+          if [ "$(ls -A parts_nnaaheni 2>/dev/null)" ]; then
+            printf "file '%s'\n" parts_nnaaheni/*.ts > list_nnaaheni.txt
+            ffmpeg -f concat -safe 0 -i list_nnaaheni.txt -c copy -movflags +faststart "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
           fi
 
       - name: Upload ke GDrive
