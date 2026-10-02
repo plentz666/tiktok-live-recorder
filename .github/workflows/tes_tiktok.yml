@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Tools & yt-dlp
+      - name: Install Tools & Streamlink/yt-dlp
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
@@ -23,39 +23,41 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live betrixstelar (10 Menit via yt-dlp)
+      - name: Rekam Live betrixstelar (10 Menit Loop)
         run: |
           mkdir -p temp_record
           OUT_TS="temp_record/raw.ts"
-          echo "Memulai perekaman betrixstelar menggunakan yt-dlp..."
+          echo "Memulai perekaman betrixstelar..."
 
-          # Gunakan yt-dlp dengan timeout internal 600 detik (10 menit)
-          yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                 --referer "https://www.tiktok.com/" \
-                 --downloader ffmpeg \
-                 --downloader-args "ffmpeg:-t 600" \
-                 "https://www.tiktok.com/@betrixstelar/live" \
-                 -o "$OUT_TS" || true
+          # Rekam menggunakan streamlink dengan durasi hls 10 menit
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                     --http-header "Referer=https://www.tiktok.com/" \
+                     --stream-segment-threads 3 \
+                     --stream-segment-timeout 15 \
+                     --stream-segment-attempts 10 \
+                     --hls-duration 00:10:00 \
+                     "https://www.tiktok.com/@betrixstelar/live" best \
+                     -o "$OUT_TS" --force || true
 
-      - name: Remux ke MP4 Valid
+      - name: Remux ke MP4
         run: |
           mkdir -p build_output
           OUT_FILE="build_output/rekaman_betrixstelar_$(date +'%Y%m%d_%H%M%S').mp4"
 
-          if [ -f "temp_record/raw.ts" ] && [ $(stat -c%s "temp_record/raw.ts" 2>/dev/null || echo 0) -gt 2000000 ]; then
-            echo "File mentah ditemukan (>2MB). Meremux ke MP4..."
+          if [ -f "temp_record/raw.ts" ] && [ -s "temp_record/raw.ts" ]; then
+            echo "File ditemukan! Ukuran: $(ls -lh temp_record/raw.ts | awk '{print $5}')"
+            echo "Meremux ke MP4..."
             ffmpeg -y -i temp_record/raw.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "$OUT_FILE" || true
-            rm -rf temp_record
           else
-            echo "❌ PEREKAMAN GAGAL: File kosong atau terlalu kecil. Tidak ada file yang diproses."
-            rm -rf temp_record
+            echo "File mentah tidak ditemukan atau 0 byte."
           fi
 
-      - name: Upload ke GDrive (Hanya Jika Ada File MP4 Valid)
+      - name: Upload ke GDrive
+        if: always()
         run: |
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            echo "Mengunggah file MP4 ke Google Drive..."
+            echo "Mengunggah file MP4 ke GDrive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           else
-            echo "Batal upload ke GDrive karena tidak ada file MP4 valid."
+            echo "Tidak ada file MP4 untuk di-upload."
           fi
