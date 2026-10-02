@@ -25,23 +25,19 @@ jobs:
       - name: Rekam Live TikTok (Streamlink)
         continue-on-error: true
         run: |
-          # Streamlink rekam ke .ts dulu agar tahan dipotong timeout
           timeout 600s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
                  "https://www.tiktok.com/@argus.bkent/live" best \
-                 -o "raw_stream.ts" --force || true
+                 -o "rekaman_argus.mp4" --force || true
 
-      - name: Perbaiki Header agar Playable di GDrive
+      - name: Benerin Header MP4
         run: |
-          if [ -f "raw_stream.ts" ] && [ -s "raw_stream.ts" ]; then
-            echo "Memperbaiki header & menyusun ulang index MP4..."
-            ffmpeg -y -i raw_stream.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart rekaman_tes.mp4 || true
-            rm -f raw_stream.ts
+          if [ -f "rekaman_argus.mp4" ]; then
+            ffmpeg -y -i rekaman_argus.mp4 -c copy -movflags +faststart fixed_rekaman_argus.mp4 || true
+            mv fixed_rekaman_argus.mp4 rekaman_argus.mp4
           fi
 
       - name: Cek & Upload ke GDrive
         if: always()
         run: |
           ls -la
-          if [ -f "rekaman_tes.mp4" ]; then
-            rclone copy rekaman_tes.mp4 gdrive:TikTok_Replays --progress
-          fi
+          rclone copy rekaman_argus.mp4 gdrive:TikTok_Replays --progress
