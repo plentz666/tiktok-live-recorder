@@ -11,33 +11,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Tools & Streamlink/yt-dlp
+      - name: Install Tools
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          python3 -m pip install --upgrade pip
-          pip install --upgrade yt-dlp streamlink
+          pip install --upgrade streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live betrixstelar (10 Menit Loop)
+      - name: Rekam Live betrixstelar (Batasi Tepat 10 Menit)
         run: |
           mkdir -p temp_record
           OUT_TS="temp_record/raw.ts"
           echo "Memulai perekaman betrixstelar..."
 
-          # Rekam menggunakan streamlink dengan durasi hls 10 menit
-          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                     --http-header "Referer=https://www.tiktok.com/" \
-                     --stream-segment-threads 3 \
-                     --stream-segment-timeout 15 \
-                     --stream-segment-attempts 10 \
-                     --hls-duration 00:10:00 \
-                     "https://www.tiktok.com/@betrixstelar/live" best \
-                     -o "$OUT_TS" --force || true
+          # Dapatkan HLS stream URL dari streamlink, lalu rekam via ffmpeg dengan limit -t 600 (10 menit)
+          STREAM_URL=$(streamlink --stream-url "https://www.tiktok.com/@betrixstelar/live" best || echo "")
+
+          if [ -n "$STREAM_URL" ]; then
+            ffmpeg -y -headers "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+                   -i "$STREAM_URL" \
+                   -t 600 \
+                   -c copy "$OUT_TS" || true
+          else
+            echo "Stream URL tidak ditemukan / Streamer Offline."
+          fi
 
       - name: Remux ke MP4
         run: |
@@ -45,19 +46,16 @@ jobs:
           OUT_FILE="build_output/rekaman_betrixstelar_$(date +'%Y%m%d_%H%M%S').mp4"
 
           if [ -f "temp_record/raw.ts" ] && [ -s "temp_record/raw.ts" ]; then
-            echo "File ditemukan! Ukuran: $(ls -lh temp_record/raw.ts | awk '{print $5}')"
             echo "Meremux ke MP4..."
             ffmpeg -y -i temp_record/raw.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "$OUT_FILE" || true
+            rm -rf temp_record
           else
-            echo "File mentah tidak ditemukan atau 0 byte."
+            echo "File mentah tidak ditemukan atau kosong."
           fi
 
       - name: Upload ke GDrive
         if: always()
         run: |
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            echo "Mengunggah file MP4 ke GDrive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
-          else
-            echo "Tidak ada file MP4 untuk di-upload."
           fi
