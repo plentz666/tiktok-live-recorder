@@ -1,4 +1,4 @@
-name: 🧪 Tes Live TikTok
+name: Rekam Cloud TikTok
 
 on:
   workflow_dispatch:
@@ -22,19 +22,12 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live TikTok (Streamlink)
+      - name: Rekam Live TikTok (Streamlink 1 Menit)
         continue-on-error: true
         run: |
-          timeout 600s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+          timeout 60s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
                  "https://www.tiktok.com/@argus.bkent/live" best \
                  -o "rekaman_argus.mp4" --force || true
-
-      - name: Benerin Header MP4
-        run: |
-          if [ -f "rekaman_argus.mp4" ]; then
-            ffmpeg -y -i rekaman_argus.mp4 -c copy -movflags +faststart fixed_rekaman_argus.mp4 || true
-            mv fixed_rekaman_argus.mp4 rekaman_argus.mp4
-          fi
 
       - name: Cek & Upload ke GDrive
         if: always()
