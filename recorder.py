@@ -1,41 +1,33 @@
-import requests
-import re
-import sys
+import asyncio
 import subprocess
 import time
+import sys
+from TikTokLive import TikTokLiveClient
+from TikTokLive.events import ConnectEvent
 
 USERNAME = "viplalicer"
+client = TikTokLiveClient(unique_id=USERNAME)
 
-def get_live_url(username):
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-        'Referer': f'https://www.tiktok.com/@{username}/live'
-    }
-    url = f"https://www.tiktok.com/@{username}/live"
-    try:
-        r = requests.get(url, headers=headers, timeout=15)
-        # Cari m3u8 flv stream URL di halaman
-        match = re.search(r'"flv_pull_url":\{"FULL_HD1":"([^"]+)".*?\}', r.text)
-        if not match:
-            match = re.search(r'"hls_pull_url":"([^"]+)"', r.text)
-        if not match:
-            match = re.search(r'(https://[^\s"]+?\.m3u8[^\s"]*)', r.text)
-            
-        if match:
-            stream_url = match.group(1).replace("\\u0026", "&")
-            return stream_url
-    except Exception as e:
-        print(f"Error fetching room page: {e}")
-    return None
+@client.on(ConnectEvent)
+async def on_connect(event: ConnectEvent):
+    print(f"[-] Terhubung ke Room ID: {client.room_id}")
+    # Ambil URL Stream FLV / M3U8 langsung dari data Webcast Room
+    stream_url = None
+    if client.room_info and 'stream_url' in client.room_info:
+        s_info = client.room_info['stream_url']
+        if 'rtmp_pull_url' in s_info:
+            stream_url = s_info['rtmp_pull_url']
+        elif 'flv_pull_url' in s_info:
+            # Ambil FULL_HD1 atau HD1
+            flv_map = s_info['flv_pull_url']
+            stream_url = flv_map.get('FULL_HD1') or flv_map.get('HD1') or list(flv_map.values())[0] if flv_map else None
 
-if __name__ == "__main__":
-    print(f"Mencari stream URL untuk @{USERNAME}...")
-    stream_url = get_live_url(USERNAME)
     if not stream_url:
-        print("Gagal mendapatkan M3U8/FLV stream URL via web page parser.")
+        print("[!] Gagal mendapatkan stream URL dari Webcast Room Info.")
+        await client.disconnect()
         sys.exit(1)
-        
-    print(f"Stream URL ditemukan! Memulai perekaman 60 detik...")
+
+    print(f"[-] Stream URL didapatkan! Memulai FFmpeg selama 60 detik...")
     cmd = [
         "ffmpeg", "-y",
         "-headers", "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)\r\n",
@@ -47,3 +39,15 @@ if __name__ == "__main__":
         "rekaman_viplalicer.mp4"
     ]
     subprocess.run(cmd)
+    print("[-] Rekam selesai.")
+    await client.disconnect()
+
+async def main():
+    try:
+        await client.start()
+    except Exception as e:
+        print(f"[!] Error TikTokLive: {e}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    asyncio.run(main())
