@@ -25,7 +25,7 @@ jobs:
 
       - name: Rekam Live TikTok (10 Menit)
         run: |
-          TARGET_USER="ranngusion__"
+          TARGET_USER="argus.bkent"
 
           mkdir -p temp_record
           OUT_TS="temp_record/raw.ts"
@@ -43,7 +43,7 @@ jobs:
         run: |
           mkdir -p build_output
           NOW=$(date +'%Y%m%d_%H%M%S')
-          OUT_FILE="build_output/rekaman_ranngusion_${NOW}.mp4"
+          OUT_FILE="build_output/rekaman_argus.bkent_${NOW}.mp4"
 
           if [ -f "temp_record/raw.ts" ] && [ -s "temp_record/raw.ts" ]; then
             echo "Memperbaiki header stream & meremux ke MP4..."
