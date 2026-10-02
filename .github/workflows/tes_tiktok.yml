@@ -26,15 +26,16 @@ jobs:
         run: |
           timeout 60s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
                  "https://www.tiktok.com/@viplalicer/live" best \
-                 -o "raw_video.flv" || true
+                 -o "raw_video.mkv" || true
 
-      - name: Fix Header MP4 Playable GDrive
+      - name: Convert ke MP4 Playable GDrive
         run: |
-          if [ -s "raw_video.flv" ]; then
-            ffmpeg -y -i raw_video.flv -c copy -movflags +faststart rekaman_viplalicer.mp4
-            rm -f raw_video.flv
+          if [ -s "raw_video.mkv" ]; then
+            ffmpeg -y -i raw_video.mkv -c copy -tag:v hvc1 -movflags +faststart rekaman_viplalicer.mp4 || \
+            ffmpeg -y -i raw_video.mkv -c copy -movflags +faststart rekaman_viplalicer.mp4
+            rm -f raw_video.mkv
           else
-            echo "STREAMER OFFLINE / FILE FLV KOSONG"
+            echo "STREAMER OFFLINE / FILE MKV KOSONG"
           fi
 
       - name: Cek & Upload ke GDrive
