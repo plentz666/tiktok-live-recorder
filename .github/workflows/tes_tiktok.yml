@@ -23,36 +23,33 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live betrixstelar (10 Menit via FFmpeg)
+      - name: Rekam Live TikTok (10 Menit)
         run: |
+          TARGET_USER="ranngusion__"
+
           mkdir -p temp_record
           OUT_TS="temp_record/raw.ts"
-          echo "Mendapatkan URL Stream TikTok..."
+          echo "Memulai perekaman untuk akun: @${TARGET_USER}..."
 
-          # Ambil direct HLS stream URL menggunakan yt-dlp -g
-          STREAM_URL=$(yt-dlp -g "https://www.tiktok.com/@betrixstelar/live" 2>/dev/null || echo "")
-
-          if [ -n "$STREAM_URL" ]; then
-            echo "URL Stream ditemukan. Memulai perekaman 10 menit (600 detik)..."
-            ffmpeg -y -headers "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                   -i "$STREAM_URL" \
-                   -t 600 \
-                   -c copy "$OUT_TS" || true
-          else
-            echo "Stream URL tidak ditemukan / streamer offline."
-          fi
+          yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                 --referer "https://www.tiktok.com/" \
+                 --hls-use-mpegts \
+                 --downloader ffmpeg \
+                 --downloader-args "ffmpeg:-t 600" \
+                 "https://www.tiktok.com/@${TARGET_USER}/live" \
+                 -o "$OUT_TS" || true
 
       - name: Remux ke MP4 Valid
         run: |
           mkdir -p build_output
-          OUT_FILE="build_output/rekaman_betrixstelar_$(date +'%Y%m%d_%H%M%S').mp4"
+          OUT_FILE="build_output/rekaman_ranngusion_${date +'%Y%m%d_%H%M%S'}.mp4"
 
           if [ -f "temp_record/raw.ts" ] && [ -s "temp_record/raw.ts" ]; then
             echo "Memperbaiki header stream & meremux ke MP4..."
             ffmpeg -y -i temp_record/raw.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "$OUT_FILE" || true
             rm -rf temp_record
           else
-            echo "File mentah tidak ditemukan atau kosong."
+            echo "File mentah tidak ditemukan / streamer offline."
           fi
 
       - name: Upload ke GDrive
