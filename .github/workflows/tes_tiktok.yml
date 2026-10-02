@@ -22,21 +22,21 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live viplalicer (Tepat 10 Menit)
+      - name: Rekam Live betrixstelar (Tepat 10 Menit)
         run: |
           mkdir -p temp_record
-          echo "Memulai perekaman viplalicer (10 Menit)..."
+          echo "Memulai perekaman betrixstelar (10 Menit)..."
 
           timeout --foreground 10m streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                      --http-header "Referer=https://www.tiktok.com/" \
                      --stream-segment-threads 2 \
-                     "https://www.tiktok.com/@viplalicer/live" best \
+                     "https://www.tiktok.com/@betrixstelar/live" best \
                      -o "temp_record/raw.ts" --force || true
 
       - name: Remux ke MP4 (Fix Header & Fast Copy)
         run: |
           mkdir -p build_output
-          OUT_FILE="build_output/rekaman_viplalicer_$(date +'%Y%m%d_%H%M%S').mp4"
+          OUT_FILE="build_output/rekaman_betrixstelar_$(date +'%Y%m%d_%H%M%S').mp4"
 
           if [ -f "temp_record/raw.ts" ] && [ -s "temp_record/raw.ts" ]; then
             echo "Memperbaiki header stream & meremux ke MP4..."
