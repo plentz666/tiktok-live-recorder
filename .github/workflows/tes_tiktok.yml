@@ -28,14 +28,10 @@ jobs:
                  "https://www.tiktok.com/@viplalicer/live" best \
                  -o "raw_video.flv" || true
 
-      - name: Kompres Ukuran & Convert ke MP4 Playable GDrive
+      - name: Fix Header MP4 Playable GDrive
         run: |
           if [ -s "raw_video.flv" ]; then
-            ffmpeg -y -i raw_video.flv \
-                   -c:v libx264 -crf 28 -preset superfast -pix_fmt yuv420p \
-                   -c:a aac -b:a 96k \
-                   -movflags +faststart \
-                   rekaman_viplalicer.mp4
+            ffmpeg -y -i raw_video.flv -c copy -movflags +faststart rekaman_viplalicer.mp4
             rm -f raw_video.flv
           else
             echo "STREAMER OFFLINE / FILE FLV KOSONG"
@@ -47,6 +43,6 @@ jobs:
           if [ -f "rekaman_viplalicer.mp4" ]; then
             rclone copy rekaman_viplalicer.mp4 gdrive:TikTok_Replays --progress
           else
-            echo "ERROR: File rekaman_viplalicer.mp4 tidak ada. Kemungkinan streamer offline!"
+            echo "ERROR: File rekaman_viplalicer.mp4 tidak ada!"
             exit 1
           fi
