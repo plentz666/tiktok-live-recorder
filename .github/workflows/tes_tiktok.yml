@@ -15,36 +15,24 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          python3 -m pip install -U yt-dlp
+          python3 -m pip install -U requests
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live TikTok (Bypass Anti-Bot)
+      - name: Rekam Stream via Python Direct Parser
         run: |
-          timeout 60s yt-dlp \
-            --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0" \
-            --referer "https://www.tiktok.com/" \
-            --concurrent-fragments 5 \
-            --hls-use-mpegts \
-            -o "raw_video.ts" \
-            "https://www.tiktok.com/@viplalicer/live" || true
-
-      - name: Remux ke MP4 Playable GDrive
-        run: |
-          if [ -s "raw_video.ts" ]; then
-            ffmpeg -y -i raw_video.ts -c:v libx264 -preset ultrafast -crf 28 -pix_fmt yuv420p -c:a aac -movflags +faststart rekaman_viplalicer.mp4
-            rm -f raw_video.ts
-          fi
+          python3 recorder.py || true
 
       - name: Upload ke GDrive
         run: |
           ls -la
           if [ -f "rekaman_viplalicer.mp4" ] && [ -s "rekaman_viplalicer.mp4" ]; then
             rclone copy rekaman_viplalicer.mp4 gdrive:TikTok_Replays --progress
+            echo "UPLOAD BERHASIL!"
           else
-            echo "Gagal mengambil stream."
+            echo "ERROR: File mp4 gagal dibuat."
             exit 1
           fi
