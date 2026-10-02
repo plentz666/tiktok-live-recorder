@@ -15,30 +15,26 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          pip install --upgrade streamlink
+          python3 -m pip install --upgrade pip
+          pip install --upgrade yt-dlp
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live betrixstelar (Batasi Tepat 10 Menit)
+      - name: Rekam Live betrixstelar (Pas 10 Menit)
         run: |
           mkdir -p temp_record
           OUT_TS="temp_record/raw.ts"
           echo "Memulai perekaman betrixstelar..."
 
-          # Dapatkan HLS stream URL dari streamlink, lalu rekam via ffmpeg dengan limit -t 600 (10 menit)
-          STREAM_URL=$(streamlink --stream-url "https://www.tiktok.com/@betrixstelar/live" best || echo "")
-
-          if [ -n "$STREAM_URL" ]; then
-            ffmpeg -y -headers "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-                   -i "$STREAM_URL" \
-                   -t 600 \
-                   -c copy "$OUT_TS" || true
-          else
-            echo "Stream URL tidak ditemukan / Streamer Offline."
-          fi
+          # Rekam menggunakan yt-dlp dengan batas waktu keras 10 menit (600 detik)
+          timeout 10m yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                             --referer "https://www.tiktok.com/" \
+                             --hls-use-mpegts \
+                             "https://www.tiktok.com/@betrixstelar/live" \
+                             -o "$OUT_TS" || true
 
       - name: Remux ke MP4
         run: |
@@ -46,11 +42,11 @@ jobs:
           OUT_FILE="build_output/rekaman_betrixstelar_$(date +'%Y%m%d_%H%M%S').mp4"
 
           if [ -f "temp_record/raw.ts" ] && [ -s "temp_record/raw.ts" ]; then
-            echo "Meremux ke MP4..."
+            echo "Memperbaiki header & meremux ke MP4..."
             ffmpeg -y -i temp_record/raw.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "$OUT_FILE" || true
             rm -rf temp_record
           else
-            echo "File mentah tidak ditemukan atau kosong."
+            echo "File mentah tidak ada / streamer offline."
           fi
 
       - name: Upload ke GDrive
