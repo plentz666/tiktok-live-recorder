@@ -11,72 +11,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Tools
+      - name: Install Apps & Streamlink
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          python3 -m pip install --upgrade pip
-          pip install --upgrade yt-dlp
+          pip install streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live TikTok (10 Menit Loop)
+      - name: Rekam Live TikTok (Streamlink)
+        continue-on-error: true
         run: |
-          TARGET_USER="argus.bkent"
+          # Streamlink rekam ke .ts dulu agar tahan dipotong timeout
+          timeout 600s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+                 "https://www.tiktok.com/@argus.bkent/live" best \
+                 -o "raw_stream.ts" --force || true
 
-          mkdir -p temp_record
-          echo "Memulai perekaman untuk @${TARGET_USER} (Paksa 10 Menit)..."
-
-          # Hitung batas waktu 10 menit (600 detik dari sekarang)
-          END_TIME=$(($(date +%s) + 600))
-          INDEX=1
-
-          while [ $(date +%s) -lt $END_TIME ]; do
-            REMAINING=$(($END_TIME - $(date +%s)))
-            if [ $REMAINING -le 5 ]; then
-              break
-            fi
-
-            echo "Merekam segmen $INDEX (sisa waktu: ${REMAINING}s)..."
-
-            timeout --preserve-status ${REMAINING}s yt-dlp \
-                   --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                   --referer "https://www.tiktok.com/" \
-                   --hls-use-mpegts \
-                   --concurrent-fragments 3 \
-                   "https://www.tiktok.com/@${TARGET_USER}/live" \
-                   -o "temp_record/part_${INDEX}.ts" || true
-
-            INDEX=$(($INDEX + 1))
-            sleep 2
-          done
-
-      - name: Remux ke MP4 Valid
+      - name: Perbaiki Header agar Playable di GDrive
         run: |
-          mkdir -p build_output
-          NOW=$(date +'%Y%m%d_%H%M%S')
-          OUT_FILE="build_output/rekaman_argus.bkent_${NOW}.mp4"
-
-          # Buat file concat list jika ada part video yang terekam
-          if ls temp_record/part_*.ts 1> /dev/null 2>&1; then
-            echo "Penggabungan segmen video..."
-            for f in $(ls -v temp_record/part_*.ts); do
-              echo "file '$PWD/$f'" >> temp_record/filelist.txt
-            done
-
-            echo "Meremux semua segmen ke MP4..."
-            ffmpeg -y -f concat -safe 0 -i temp_record/filelist.txt -c copy -bsf:a aac_adtstoasc -movflags +faststart "$OUT_FILE" || true
-            rm -rf temp_record
-          else
-            echo "Tidak ada part video yang terekam / streamer offline."
+          if [ -f "raw_stream.ts" ] && [ -s "raw_stream.ts" ]; then
+            echo "Memperbaiki header & menyusun ulang index MP4..."
+            ffmpeg -y -i raw_stream.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart rekaman_tes.mp4 || true
+            rm -f raw_stream.ts
           fi
 
-      - name: Upload ke GDrive
+      - name: Cek & Upload ke GDrive
         if: always()
         run: |
-          if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            rclone copy build_output/ gdrive:TikTok_Replays --progress
+          ls -la
+          if [ -f "rekaman_tes.mp4" ]; then
+            rclone copy rekaman_tes.mp4 gdrive:TikTok_Replays --progress
           fi
