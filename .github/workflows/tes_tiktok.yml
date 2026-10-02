@@ -22,12 +22,25 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live TikTok (Direct Transcode MP4)
+      - name: Rekam Live TikTok (Streamlink 1 Menit)
         run: |
           timeout 60s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-                 --ffmpeg-video-transcode libx264 \
                  "https://www.tiktok.com/@viplalicer/live" best \
-                 -o "rekaman_viplalicer.mp4" || true
+                 -o "raw_stream.ts" || true
+
+      - name: Fix Header & Convert ke MP4 Valid GDrive
+        run: |
+          if [ -s "raw_stream.ts" ]; then
+            ffmpeg -y -analyzeduration 10M -probesize 10M \
+                   -i raw_stream.ts \
+                   -c:v libx264 -preset ultrafast -crf 28 -pix_fmt yuv420p \
+                   -c:a aac -b:a 128k \
+                   -movflags +faststart \
+                   rekaman_viplalicer.mp4
+            rm -f raw_stream.ts
+          else
+            echo "STREAMER OFFLINE / FILE TS KOSONG"
+          fi
 
       - name: Cek & Upload ke GDrive
         run: |
@@ -35,6 +48,6 @@ jobs:
           if [ -f "rekaman_viplalicer.mp4" ] && [ -s "rekaman_viplalicer.mp4" ]; then
             rclone copy rekaman_viplalicer.mp4 gdrive:TikTok_Replays --progress
           else
-            echo "ERROR: File rekaman_viplalicer.mp4 tidak ada atau 0 byte!"
+            echo "ERROR: File rekaman_viplalicer.mp4 tidak ditemukan/kosong!"
             exit 1
           fi
