@@ -22,27 +22,19 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live TikTok (Streamlink 1 Menit)
+      - name: Rekam Live TikTok (Direct Transcode MP4)
         run: |
           timeout 60s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+                 --ffmpeg-video-transcode libx264 \
                  "https://www.tiktok.com/@viplalicer/live" best \
-                 -o "raw_video.flv" || true
-
-      - name: Convert ke MKV Playable GDrive
-        run: |
-          if [ -s "raw_video.flv" ]; then
-            ffmpeg -y -i raw_video.flv -c copy rekaman_viplalicer.mkv
-            rm -f raw_video.flv
-          else
-            echo "STREAMER OFFLINE / FILE FLV KOSONG"
-          fi
+                 -o "rekaman_viplalicer.mp4" || true
 
       - name: Cek & Upload ke GDrive
         run: |
           ls -la
-          if [ -f "rekaman_viplalicer.mkv" ]; then
-            rclone copy rekaman_viplalicer.mkv gdrive:TikTok_Replays --progress
+          if [ -f "rekaman_viplalicer.mp4" ] && [ -s "rekaman_viplalicer.mp4" ]; then
+            rclone copy rekaman_viplalicer.mp4 gdrive:TikTok_Replays --progress
           else
-            echo "ERROR: File rekaman_viplalicer.mkv tidak ada!"
+            echo "ERROR: File rekaman_viplalicer.mp4 tidak ada atau 0 byte!"
             exit 1
           fi
