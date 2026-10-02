@@ -23,21 +23,22 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live TikTok (10 Menit)
+      - name: Rekam Live TikTok (10 Menit Native)
         run: |
           TARGET_USER="argus.bkent"
 
           mkdir -p temp_record
           OUT_TS="temp_record/raw.ts"
-          echo "Memulai perekaman untuk akun: @${TARGET_USER}..."
+          echo "Memulai perekaman native untuk: @${TARGET_USER}..."
 
-          yt-dlp --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+          # Perekaman native yt-dlp dipotong pas 600 detik (10 menit)
+          timeout --preserve-status 600s yt-dlp \
+                 --user-agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                  --referer "https://www.tiktok.com/" \
                  --hls-use-mpegts \
-                 --retries 10 \
-                 --fragment-retries 10 \
-                 --downloader ffmpeg \
-                 --downloader-args "ffmpeg:-t 600" \
+                 --concurrent-fragments 3 \
+                 --retries infinite \
+                 --fragment-retries infinite \
                  "https://www.tiktok.com/@${TARGET_USER}/live" \
                  -o "$OUT_TS" || true
 
