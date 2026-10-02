@@ -1,4 +1,4 @@
-name: Rekam Cloud TikTok (480p Auto Aspect)
+name: Rekam Cloud TikTok (Ukuran Kecil Original Resolution)
 
 on:
   workflow_dispatch:
@@ -29,11 +29,10 @@ jobs:
                  "https://www.tiktok.com/@argus.bkent/live" best \
                  -o "raw_video.flv" --force || true
 
-      - name: Compress ke 480p & Convert ke MP4 Playable GDrive
+      - name: Kompres Ukuran & Convert ke MP4 Playable GDrive
         run: |
           if [ -f "raw_video.flv" ] && [ -s "raw_video.flv" ]; then
             ffmpeg -y -i raw_video.flv \
-                   -vf "scale='if(gt(ih,iw),480,-2)':'if(gt(ih,iw),-2,480)'" \
                    -c:v libx264 -crf 28 -preset superfast -pix_fmt yuv420p \
                    -c:a aac -b:a 96k \
                    -movflags +faststart \
