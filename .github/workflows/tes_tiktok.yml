@@ -42,7 +42,8 @@ jobs:
       - name: Remux ke MP4 Valid
         run: |
           mkdir -p build_output
-          OUT_FILE="build_output/rekaman_ranngusion_${date +'%Y%m%d_%H%M%S'}.mp4"
+          NOW=$(date +'%Y%m%d_%H%M%S')
+          OUT_FILE="build_output/rekaman_ranngusion_${NOW}.mp4"
 
           if [ -f "temp_record/raw.ts" ] && [ -s "temp_record/raw.ts" ]; then
             echo "Memperbaiki header stream & meremux ke MP4..."
