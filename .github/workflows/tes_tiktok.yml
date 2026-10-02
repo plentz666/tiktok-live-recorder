@@ -11,28 +11,42 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Apps & TikTokLive
+      - name: Install Apps
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          python3 -m pip install -U TikTokLive
+          pip install streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam via TikTok Webcast Protocol
+      - name: Rekam Live Stream Mentah (FLV)
         run: |
-          python3 recorder.py || true
+          timeout 60s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+                 "https://www.tiktok.com/@viplalicer/live" best \
+                 -o "raw_stream.flv" || true
+
+      - name: Perbaiki Header & Re-encode ke MP4 Valid GDrive
+        run: |
+          if [ -s "raw_stream.flv" ]; then
+            # Analyzeduration memaksa FFmpeg membaca file lebih dalam agar dimensi HEVC terdeteksi
+            ffmpeg -y -analyzeduration 20M -probesize 20M \
+                   -i raw_stream.flv \
+                   -c:v libx264 -preset ultrafast -crf 28 -pix_fmt yuv420p \
+                   -c:a aac -b:a 128k \
+                   -movflags +faststart \
+                   rekaman_viplalicer.mp4 || true
+            rm -f raw_stream.flv
+          fi
 
       - name: Upload ke GDrive
         run: |
-          ls -la
           if [ -f "rekaman_viplalicer.mp4" ] && [ -s "rekaman_viplalicer.mp4" ]; then
             rclone copy rekaman_viplalicer.mp4 gdrive:TikTok_Replays --progress
-            echo "UPLOAD SUCCESS!"
+            echo "BERHASIL! File sudah rapi dan siap putar di Drive."
           else
-            echo "ERROR: File mp4 gagal terbuat."
+            echo "File tidak terbentuk / streamer offline."
             exit 1
           fi
