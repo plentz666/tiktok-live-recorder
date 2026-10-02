@@ -33,17 +33,19 @@ jobs:
                      "https://www.tiktok.com/@betrixstelar/live" best \
                      -o "temp_record/raw.ts" --force || true
 
-      - name: Remux ke MP4 (Fix Header & Fast Copy)
+      - name: Remux ke MP4 (Cek File Kosong)
         run: |
           mkdir -p build_output
           OUT_FILE="build_output/rekaman_betrixstelar_$(date +'%Y%m%d_%H%M%S').mp4"
 
-          if [ -f "temp_record/raw.ts" ] && [ -s "temp_record/raw.ts" ]; then
-            echo "Memperbaiki header stream & meremux ke MP4..."
+          # Cek jika file raw.ts ada DAN ukurannya lebih dari 1MB (1000 KB)
+          if [ -f "temp_record/raw.ts" ] && [ $(stat -c%s "temp_record/raw.ts" 2>/dev/null || echo 0) -gt 1000000 ]; then
+            echo "File rekaman valid. Memperbaiki header stream & meremux ke MP4..."
             ffmpeg -y -i temp_record/raw.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "$OUT_FILE" || true
             rm -rf temp_record
           else
-            echo "File mentah tidak ditemukan."
+            echo "Streamer OFFLINE atau rekaman gagal/kosong (kurang dari 1MB). Batal memproses."
+            rm -rf temp_record
           fi
 
       - name: Upload ke GDrive
@@ -51,4 +53,6 @@ jobs:
         run: |
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
             rclone copy build_output/ gdrive:TikTok_Replays --progress
+          else
+            echo "Tidak ada file MP4 valid yang siap di-upload."
           fi
