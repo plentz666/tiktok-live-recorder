@@ -1,4 +1,4 @@
-name: Rekam Cloud TikTok
+name: Rekam Cloud TikTok (480p)
 
 on:
   workflow_dispatch:
@@ -27,10 +27,24 @@ jobs:
         run: |
           timeout 60s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
                  "https://www.tiktok.com/@argus.bkent/live" best \
-                 -o "rekaman_argus.mp4" --force || true
+                 -o "raw_video.flv" --force || true
+
+      - name: Compress ke 480p & Convert ke MP4 Playable GDrive
+        run: |
+          if [ -f "raw_video.flv" ] && [ -s "raw_video.flv" ]; then
+            ffmpeg -y -i raw_video.flv \
+                   -vf "scale=-2:480" \
+                   -c:v libx264 -crf 28 -preset superfast \
+                   -c:a aac -b:a 96k \
+                   -movflags +faststart \
+                   rekaman_argus.mp4 || true
+            rm -f raw_video.flv
+          fi
 
       - name: Cek & Upload ke GDrive
         if: always()
         run: |
           ls -la
-          rclone copy rekaman_argus.mp4 gdrive:TikTok_Replays --progress
+          if [ -f "rekaman_argus.mp4" ]; then
+            rclone copy rekaman_argus.mp4 gdrive:TikTok_Replays --progress
+          fi
