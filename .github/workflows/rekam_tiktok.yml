@@ -1,4 +1,4 @@
-name: 🔴 Rekam Full Live TikTok
+name: Rekam Cloud TikTok
 
 on:
   workflow_dispatch:
@@ -15,84 +15,28 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          pip install --upgrade streamlink
+          pip install streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live nanaaheni_ (Auto Reconnect)
+      - name: Rekam Live nanaaheni_
         continue-on-error: true
         run: |
-          mkdir -p parts_nanaaheni
-          COUNTER=1
-          FAIL_COUNT=0
-          echo "Memulai perekaman nanaaheni_..."
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+                     "https://www.tiktok.com/@nanaaheni_/live" best \
+                     -o "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4" --force || true
 
-          while [ $FAIL_COUNT -lt 5 ]; do
-            FILE_OUT="parts_nanaaheni/part_$(printf "%03d" $COUNTER).ts"
-
-            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                       --http-header "Referer=https://www.tiktok.com/" \
-                       --stream-segment-threads 2 \
-                       --hls-live-restart \
-                       "https://www.tiktok.com/@nanaaheni_/live" best \
-                       -o "$FILE_OUT" --force || true
-
-            if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
-              COUNTER=$((COUNTER+1))
-              FAIL_COUNT=0
-            else
-              rm -f "$FILE_OUT"
-              FAIL_COUNT=$((FAIL_COUNT+1))
-              sleep 5
-            fi
-          done
-
-          if [ "$(ls -A parts_nanaaheni 2>/dev/null)" ]; then
-            printf "file '%s'\n" parts_nanaaheni/*.ts > list_nanaaheni.txt
-            ffmpeg -f concat -safe 0 -i list_nanaaheni.txt -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
-          fi
-
-      - name: Rekam Live nnaaheni (Auto Reconnect)
+      - name: Rekam Live nnaaheni
         continue-on-error: true
         run: |
-          mkdir -p parts_nnaaheni
-          COUNTER=1
-          FAIL_COUNT=0
-          echo "Memulai perekaman nnaaheni..."
-
-          while [ $FAIL_COUNT -lt 5 ]; do
-            FILE_OUT="parts_nnaaheni/part_$(printf "%03d" $COUNTER).ts"
-
-            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                       --http-header "Referer=https://www.tiktok.com/" \
-                       --stream-segment-threads 2 \
-                       --hls-live-restart \
-                       "https://www.tiktok.com/@nnaaheni/live" best \
-                       -o "$FILE_OUT" --force || true
-
-            if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
-              COUNTER=$((COUNTER+1))
-              FAIL_COUNT=0
-            else
-              rm -f "$FILE_OUT"
-              FAIL_COUNT=$((FAIL_COUNT+1))
-              sleep 5
-            fi
-          done
-
-          if [ "$(ls -A parts_nnaaheni 2>/dev/null)" ]; then
-            printf "file '%s'\n" parts_nnaaheni/*.ts > list_nnaaheni.txt
-            ffmpeg -f concat -safe 0 -i list_nnaaheni.txt -c copy -movflags +faststart "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
-          fi
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+                     "https://www.tiktok.com/@nnaaheni/live" best \
+                     -o "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4" --force || true
 
       - name: Upload ke GDrive
         if: always()
         run: |
-          mkdir -p build_output
-          mv rekaman_*.mp4 build_output/ 2>/dev/null || true
-          if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            rclone copy build_output/ gdrive:TikTok_Replays --progress
-          fi
+          rclone copy ./ gdrive:TikTok_Replays --include "*.mp4" --progress
