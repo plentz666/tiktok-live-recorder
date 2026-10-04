@@ -1,4 +1,4 @@
-name: Rekam Cloud TikTok
+name: 🔴 Rekam Tes TikTok
 
 on:
   workflow_dispatch:
@@ -11,42 +11,88 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Apps
+      - name: Install Apps & Streamlink
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          pip install streamlink
+          pip install --upgrade streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live Stream Mentah (FLV)
+      - name: Rekam Live nanaaheni_ (Auto Reconnect)
+        continue-on-error: true
         run: |
-          timeout 60s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-                 "https://www.tiktok.com/@viplalicer/live" best \
-                 -o "raw_stream.flv" || true
+          mkdir -p parts_nanaaheni
+          COUNTER=1
+          FAIL_COUNT=0
+          echo "Memulai perekaman nanaaheni_..."
+          
+          while [ $FAIL_COUNT -lt 5 ]; do
+            FILE_OUT="parts_nanaaheni/part_$(printf "%03d" $COUNTER).ts"
+            
+            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                       --http-header "Referer=https://www.tiktok.com/" \
+                       --stream-segment-threads 2 \
+                       --hls-live-restart \
+                       "https://www.tiktok.com/@nanaaheni_/live" best \
+                       -o "$FILE_OUT" --force || true
+            
+            if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
+              COUNTER=$((COUNTER+1))
+              FAIL_COUNT=0
+            else
+              rm -f "$FILE_OUT"
+              FAIL_COUNT=$((FAIL_COUNT+1))
+              sleep 5
+            fi
+          done
 
-      - name: Perbaiki Header & Re-encode ke MP4 Valid GDrive
+          if [ "$(ls -A parts_nanaaheni 2>/dev/null)" ]; then
+            printf "file '%s'\n" parts_nanaaheni/*.ts > list_nanaaheni.txt
+            ffmpeg -f concat -safe 0 -i list_nanaaheni.txt -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
+          fi
+
+      - name: Rekam Live ranngusion__ (Auto Reconnect)
+        continue-on-error: true
         run: |
-          if [ -s "raw_stream.flv" ]; then
-            # Analyzeduration memaksa FFmpeg membaca file lebih dalam agar dimensi HEVC terdeteksi
-            ffmpeg -y -analyzeduration 20M -probesize 20M \
-                   -i raw_stream.flv \
-                   -c:v libx264 -preset ultrafast -crf 28 -pix_fmt yuv420p \
-                   -c:a aac -b:a 128k \
-                   -movflags +faststart \
-                   rekaman_viplalicer.mp4 || true
-            rm -f raw_stream.flv
+          mkdir -p parts_ranngusion__
+          COUNTER=1
+          FAIL_COUNT=0
+          echo "Memulai perekaman ranngusion__..."
+          
+          while [ $FAIL_COUNT -lt 5 ]; do
+            FILE_OUT="parts_ranngusion__/part_$(printf "%03d" $COUNTER).ts"
+            
+            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                       --http-header "Referer=https://www.tiktok.com/" \
+                       --stream-segment-threads 2 \
+                       --hls-live-restart \
+                       "https://www.tiktok.com/@ranngusion__/live" best \
+                       -o "$FILE_OUT" --force || true
+            
+            if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
+              COUNTER=$((COUNTER+1))
+              FAIL_COUNT=0
+            else
+              rm -f "$FILE_OUT"
+              FAIL_COUNT=$((FAIL_COUNT+1))
+              sleep 5
+            fi
+          done
+
+          if [ "$(ls -A parts_ranngusion__ 2>/dev/null)" ]; then
+            printf "file '%s'\n" parts_ranngusion__/*.ts > list_ranngusion__.txt
+            ffmpeg -f concat -safe 0 -i list_ranngusion__.txt -c copy -movflags +faststart "rekaman_ranngusion__$(date +'%Y%m%d_%H%M%S').mp4"
           fi
 
       - name: Upload ke GDrive
+        if: always()
         run: |
-          if [ -f "rekaman_viplalicer.mp4" ] && [ -s "rekaman_viplalicer.mp4" ]; then
-            rclone copy rekaman_viplalicer.mp4 gdrive:TikTok_Replays --progress
-            echo "BERHASIL! File sudah rapi dan siap putar di Drive."
-          else
-            echo "File tidak terbentuk / streamer offline."
-            exit 1
+          mkdir -p build_output
+          mv rekaman_*.mp4 build_output/ 2>/dev/null || true
+          if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
+            rclone copy build_output/ gdrive:TikTok_Replays --progress
           fi
