@@ -11,11 +11,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install yt-dlp & rclone
+      - name: Install yt-dlp & ffmpeg
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          # Menginstall yt-dlp versi terbaru yang tahan blokir TikTok
           sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
           sudo chmod a+rx /usr/local/bin/yt-dlp
 
@@ -24,13 +23,27 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live cipuyyy221 (Anti Blokir)
+      - name: Rekam Live cipuyyy221 (Direct URL + FFMPEG)
         continue-on-error: true
         run: |
-          echo "Merekam cipuyyy221 selama 5 menit..."
+          echo "Mengambil URL stream asli dari TikTok menggunakan yt-dlp..."
           
-          # timeout 300s (5 menit) akan menghentikan yt-dlp, dan yt-dlp otomatis menyimpan file MP4 dengan sempurna
-          timeout 300s yt-dlp "https://www.tiktok.com/@cipuyyy221/live" -o "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4" || true
+          # Mengambil direct link M3U8/FLV dari live TikTok
+          STREAM_URL=$(yt-dlp -g "https://www.tiktok.com/@cipuyyy221/live" 2>/dev/null | head -n 1)
+          
+          if [ -z "$STREAM_URL" ]; then
+            echo "Gagal mengambil URL stream! Pastikan akun sedang live."
+            exit 1
+          fi
+          
+          echo "URL berhasil didapat! Mulai merekam tepat 5 menit..."
+          
+          # Merekam menggunakan ffmpeg. Opsi -t 300 akan memastikan durasi video PAS 5 menit.
+          ffmpeg -y -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                 -t 300 \
+                 -i "$STREAM_URL" \
+                 -c copy -bsf:a aac_adtstoasc -movflags +faststart \
+                 "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4" || true
 
       - name: Upload ke GDrive
         if: always()
