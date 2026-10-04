@@ -6,6 +6,7 @@ on:
 jobs:
   record_job:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -22,7 +23,7 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live nanaaheni_ (Auto Reconnect)
+      - name: Rekam Live nanaaheni_ (Max 10 Mins Total)
         continue-on-error: true
         run: |
           mkdir -p parts_nanaaheni
@@ -30,6 +31,7 @@ jobs:
           FAIL_COUNT=0
           echo "Memulai perekaman nanaaheni_..."
 
+          timeout 600s bash -c '
           while [ $FAIL_COUNT -lt 5 ]; do
             FILE_OUT="parts_nanaaheni/part_$(printf "%03d" $COUNTER).ts"
 
@@ -50,13 +52,14 @@ jobs:
               sleep 5
             fi
           done
+          ' || true
 
           if [ "$(ls -A parts_nanaaheni 2>/dev/null)" ]; then
             printf "file '%s'\n" parts_nanaaheni/*.ts > list_nanaaheni.txt
             ffmpeg -f concat -safe 0 -i list_nanaaheni.txt -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
           fi
 
-      - name: Rekam Live ranngusion__ (Auto Reconnect)
+      - name: Rekam Live ranngusion__ (Max 10 Mins Total)
         continue-on-error: true
         run: |
           mkdir -p parts_ranngusion__
@@ -64,6 +67,7 @@ jobs:
           FAIL_COUNT=0
           echo "Memulai perekaman ranngusion__..."
 
+          timeout 600s bash -c '
           while [ $FAIL_COUNT -lt 5 ]; do
             FILE_OUT="parts_ranngusion__/part_$(printf "%03d" $COUNTER).ts"
 
@@ -84,6 +88,7 @@ jobs:
               sleep 5
             fi
           done
+          ' || true
 
           if [ "$(ls -A parts_ranngusion__ 2>/dev/null)" ]; then
             printf "file '%s'\n" parts_ranngusion__/*.ts > list_ranngusion__.txt
