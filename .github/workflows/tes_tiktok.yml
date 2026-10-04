@@ -42,7 +42,7 @@ jobs:
 
             FILE_OUT="parts_nanaaheni/part_$(printf "%03d" $COUNTER).ts"
 
-            timeout ${REMAINING}s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+            timeout -s SIGINT ${REMAINING}s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                        --http-header "Referer=https://www.tiktok.com/" \
                        --stream-segment-threads 2 \
                        --hls-live-restart \
@@ -61,7 +61,7 @@ jobs:
 
           if [ "$(ls -A parts_nanaaheni 2>/dev/null)" ]; then
             printf "file '%s'\n" parts_nanaaheni/*.ts > list_nanaaheni.txt
-            ffmpeg -f concat -safe 0 -i list_nanaaheni.txt -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
+            ffmpeg -y -f concat -safe 0 -i list_nanaaheni.txt -map 0:v? -map 0:a? -c copy -fflags +genpts -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
           fi
 
       - name: Rekam Live ranngusion__ (Auto Reconnect)
@@ -84,7 +84,7 @@ jobs:
 
             FILE_OUT="parts_ranngusion__/part_$(printf "%03d" $COUNTER).ts"
 
-            timeout ${REMAINING}s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+            timeout -s SIGINT ${REMAINING}s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                        --http-header "Referer=https://www.tiktok.com/" \
                        --stream-segment-threads 2 \
                        --hls-live-restart \
@@ -103,7 +103,7 @@ jobs:
 
           if [ "$(ls -A parts_ranngusion__ 2>/dev/null)" ]; then
             printf "file '%s'\n" parts_ranngusion__/*.ts > list_ranngusion__.txt
-            ffmpeg -f concat -safe 0 -i list_ranngusion__.txt -c copy -movflags +faststart "rekaman_ranngusion__$(date +'%Y%m%d_%H%M%S').mp4"
+            ffmpeg -y -f concat -safe 0 -i list_ranngusion__.txt -map 0:v? -map 0:a? -c copy -fflags +genpts -movflags +faststart "rekaman_ranngusion__$(date +'%Y%m%d_%H%M%S').mp4"
           fi
 
       - name: Upload ke GDrive
