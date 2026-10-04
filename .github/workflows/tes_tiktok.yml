@@ -11,10 +11,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Streamlink & FFmpeg
+      - name: Install Streamlink & Rclone
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg rclone
+          sudo apt-get install -y rclone
           pip install --upgrade streamlink
 
       - name: Setup GDrive
@@ -22,23 +22,20 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live cipuyyy221 (Piping Streamlink ke FFmpeg)
-        continue-on-error: true
+      - name: Rekam Live cipuyyy221
         run: |
-          echo "Merekam menggunakan kombinasi Piping..."
+          mkdir -p build_output
+          echo "Merekam langsung ke MP4 menggunakan SIGINT agar file tidak rusak..."
           
-          # Streamlink menyedot video dan mengeluarkan outputnya (--stdout)
-          # FFmpeg menerima (pipe:0), merekam pas 5 menit (-t 300), dan memastikan format MP4 sempurna
-          streamlink --stdout \
-            --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
-            "https://www.tiktok.com/@cipuyyy221/live" best | \
-          ffmpeg -y -i pipe:0 -t 300 -c copy -movflags +faststart "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4" || true
+          # -s SIGINT adalah kunci agar file MP4 ditutup dengan rapi dan bisa diputar.
+          timeout -s SIGINT 300s streamlink --loglevel debug --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "https://www.tiktok.com/@cipuyyy221/live" best -o "build_output/rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4" || true
 
       - name: Upload ke GDrive
         if: always()
         run: |
-          mkdir -p build_output
-          mv rekaman_*.mp4 build_output/ 2>/dev/null || true
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
+            echo "Mengupload file ke GDrive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
+          else
+            echo "Gagal merekam, tidak ada file untuk diupload."
           fi
