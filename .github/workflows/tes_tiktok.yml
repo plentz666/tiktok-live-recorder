@@ -22,7 +22,7 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live cipuyyy221 (Anti Black Screen)
+      - name: Rekam Live cipuyyy221 (Fix Durasi & Anti Black Screen)
         continue-on-error: true
         run: |
           mkdir -p parts_cipuyyy
@@ -38,7 +38,7 @@ jobs:
             fi
             REMAINING=$((300 - ELAPSED))
             
-            # File disimpan dengan format .ts agar anti-corrupt walau dimatikan paksa
+            # File disimpan dengan format .ts agar anti-corrupt
             FILE_OUT="parts_cipuyyy/part_${NOW}.ts"
 
             timeout ${REMAINING}s streamlink --quiet --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
@@ -48,10 +48,17 @@ jobs:
             sleep 3
           done
 
-          # Menggabungkan dan merapikan file .ts menjadi .mp4 secara sempurna
+          # BAGIAN YANG DIPERBAIKI: Gabungkan file dan reset durasi videonya ke 0
           if [ "$(ls -A parts_cipuyyy 2>/dev/null)" ]; then
-            printf "file '%s'\n" parts_cipuyyy/*.ts > list_cipuyyy.txt
-            ffmpeg -y -f concat -safe 0 -i list_cipuyyy.txt -c copy -bsf:a aac_adtstoasc -movflags +faststart "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4"
+            echo "Menggabungkan video dan mereset durasi..."
+            # 1. Gabungin semua potongan video .ts jadi satu file utuh bernama gabungan.ts
+            cat parts_cipuyyy/*.ts > gabungan.ts
+            
+            # 2. Convert ke MP4 dan paksa perbaiki waktu video yang ngaco pakai -fflags +genpts
+            ffmpeg -y -fflags +genpts -i gabungan.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4"
+            
+            # 3. Hapus file sementara
+            rm gabungan.ts
           fi
 
       - name: Upload ke GDrive
