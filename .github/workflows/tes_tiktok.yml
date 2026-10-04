@@ -11,56 +11,26 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Apps & Streamlink
+      - name: Install yt-dlp & rclone
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          pip install --upgrade streamlink
+          # Menginstall yt-dlp versi terbaru yang tahan blokir TikTok
+          sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live cipuyyy221 (Auto Reconnect)
+      - name: Rekam Live cipuyyy221 (Anti Blokir)
         continue-on-error: true
         run: |
-          mkdir -p parts_cipuyyy
-          COUNTER=1
-          FAIL_COUNT=0
-          START_TIME=$(date +%s)
-          echo "Memulai perekaman cipuyyy221 selama 5 menit..."
-
-          while [ $FAIL_COUNT -lt 5 ]; do
-            NOW=$(date +%s)
-            ELAPSED=$((NOW - START_TIME))
-            if [ $ELAPSED -ge 300 ]; then
-              echo "Batas waktu 5 menit tercapai."
-              break
-            fi
-            REMAINING=$((300 - ELAPSED))
-
-            FILE_OUT="parts_cipuyyy/part_$(printf "%03d" $COUNTER).ts"
-
-            streamlink --quiet --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                       --http-header "Referer=https://www.tiktok.com/" \
-                       "https://www.tiktok.com/@cipuyyy221/live" best --stdout | \
-            ffmpeg -y -t ${REMAINING} -i pipe:0 -c copy -f mpegts "$FILE_OUT" || true
-
-            if [ -f "$FILE_OUT" ] && [ -s "$FILE_OUT" ]; then
-              COUNTER=$((COUNTER+1))
-              FAIL_COUNT=0
-            else
-              rm -f "$FILE_OUT"
-              FAIL_COUNT=$((FAIL_COUNT+1))
-              sleep 5
-            fi
-          done
-
-          if [ "$(ls -A parts_cipuyyy 2>/dev/null)" ]; then
-            printf "file '%s'\n" parts_cipuyyy/*.ts > list_cipuyyy.txt
-            ffmpeg -y -f concat -safe 0 -i list_cipuyyy.txt -map 0:v? -map 0:a? -c copy -bsf:a aac_adtstoasc -movflags +faststart "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4"
-          fi
+          echo "Merekam cipuyyy221 selama 5 menit..."
+          
+          # timeout 300s (5 menit) akan menghentikan yt-dlp, dan yt-dlp otomatis menyimpan file MP4 dengan sempurna
+          timeout 300s yt-dlp "https://www.tiktok.com/@cipuyyy221/live" -o "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4" || true
 
       - name: Upload ke GDrive
         if: always()
