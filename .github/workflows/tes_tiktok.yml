@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Apps & Streamlink
+      - name: Install Streamlink & FFmpeg
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
@@ -22,44 +22,17 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live cipuyyy221 (Fix Durasi & Anti Black Screen)
+      - name: Rekam Live cipuyyy221 (Piping Streamlink ke FFmpeg)
         continue-on-error: true
         run: |
-          mkdir -p parts_cipuyyy
-          echo "Memulai perekaman cipuyyy221 maksimal 5 menit..."
-          START_TIME=$(date +%s)
-
-          while true; do
-            NOW=$(date +%s)
-            ELAPSED=$((NOW - START_TIME))
-            if [ $ELAPSED -ge 300 ]; then
-              echo "Batas waktu 5 menit tercapai."
-              break
-            fi
-            REMAINING=$((300 - ELAPSED))
-            
-            # File disimpan dengan format .ts agar anti-corrupt
-            FILE_OUT="parts_cipuyyy/part_${NOW}.ts"
-
-            timeout ${REMAINING}s streamlink --quiet --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                       --http-header "Referer=https://www.tiktok.com/" \
-                       "https://www.tiktok.com/@cipuyyy221/live" best -o "$FILE_OUT" || true
-
-            sleep 3
-          done
-
-          # BAGIAN YANG DIPERBAIKI: Gabungkan file dan reset durasi videonya ke 0
-          if [ "$(ls -A parts_cipuyyy 2>/dev/null)" ]; then
-            echo "Menggabungkan video dan mereset durasi..."
-            # 1. Gabungin semua potongan video .ts jadi satu file utuh bernama gabungan.ts
-            cat parts_cipuyyy/*.ts > gabungan.ts
-            
-            # 2. Convert ke MP4 dan paksa perbaiki waktu video yang ngaco pakai -fflags +genpts
-            ffmpeg -y -fflags +genpts -i gabungan.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4"
-            
-            # 3. Hapus file sementara
-            rm gabungan.ts
-          fi
+          echo "Merekam menggunakan kombinasi Piping..."
+          
+          # Streamlink menyedot video dan mengeluarkan outputnya (--stdout)
+          # FFmpeg menerima (pipe:0), merekam pas 5 menit (-t 300), dan memastikan format MP4 sempurna
+          streamlink --stdout \
+            --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" \
+            "https://www.tiktok.com/@cipuyyy221/live" best | \
+          ffmpeg -y -i pipe:0 -t 300 -c copy -movflags +faststart "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4" || true
 
       - name: Upload ke GDrive
         if: always()
