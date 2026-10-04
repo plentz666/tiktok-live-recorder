@@ -6,7 +6,6 @@ on:
 jobs:
   record_job:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -23,23 +22,30 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live nanaaheni_ (Max 10 Mins Total)
+      - name: Rekam Live nanaaheni_ (Auto Reconnect)
         continue-on-error: true
         run: |
           mkdir -p parts_nanaaheni
           COUNTER=1
           FAIL_COUNT=0
+          START_TIME=$(date +%s)
           echo "Memulai perekaman nanaaheni_..."
 
-          timeout 600s bash -c '
           while [ $FAIL_COUNT -lt 5 ]; do
+            NOW=$(date +%s)
+            ELAPSED=$((NOW - START_TIME))
+            if [ $ELAPSED -ge 600 ]; then
+              echo "Batas waktu 10 menit tercapai."
+              break
+            fi
+            REMAINING=$((600 - ELAPSED))
+
             FILE_OUT="parts_nanaaheni/part_$(printf "%03d" $COUNTER).ts"
 
-            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+            timeout ${REMAINING}s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                        --http-header "Referer=https://www.tiktok.com/" \
                        --stream-segment-threads 2 \
                        --hls-live-restart \
-                       --hls-duration 10m \
                        "https://www.tiktok.com/@nanaaheni_/live" best \
                        -o "$FILE_OUT" --force || true
 
@@ -52,30 +58,36 @@ jobs:
               sleep 5
             fi
           done
-          ' || true
 
           if [ "$(ls -A parts_nanaaheni 2>/dev/null)" ]; then
             printf "file '%s'\n" parts_nanaaheni/*.ts > list_nanaaheni.txt
             ffmpeg -f concat -safe 0 -i list_nanaaheni.txt -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
           fi
 
-      - name: Rekam Live ranngusion__ (Max 10 Mins Total)
+      - name: Rekam Live ranngusion__ (Auto Reconnect)
         continue-on-error: true
         run: |
           mkdir -p parts_ranngusion__
           COUNTER=1
           FAIL_COUNT=0
+          START_TIME=$(date +%s)
           echo "Memulai perekaman ranngusion__..."
 
-          timeout 600s bash -c '
           while [ $FAIL_COUNT -lt 5 ]; do
+            NOW=$(date +%s)
+            ELAPSED=$((NOW - START_TIME))
+            if [ $ELAPSED -ge 600 ]; then
+              echo "Batas waktu 10 menit tercapai."
+              break
+            fi
+            REMAINING=$((600 - ELAPSED))
+
             FILE_OUT="parts_ranngusion__/part_$(printf "%03d" $COUNTER).ts"
 
-            streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+            timeout ${REMAINING}s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
                        --http-header "Referer=https://www.tiktok.com/" \
                        --stream-segment-threads 2 \
                        --hls-live-restart \
-                       --hls-duration 10m \
                        "https://www.tiktok.com/@ranngusion__/live" best \
                        -o "$FILE_OUT" --force || true
 
@@ -88,7 +100,6 @@ jobs:
               sleep 5
             fi
           done
-          ' || true
 
           if [ "$(ls -A parts_ranngusion__ 2>/dev/null)" ]; then
             printf "file '%s'\n" parts_ranngusion__/*.ts > list_ranngusion__.txt
