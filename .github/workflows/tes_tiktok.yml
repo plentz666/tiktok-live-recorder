@@ -11,39 +11,48 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install yt-dlp & ffmpeg
+      - name: Install Apps & Streamlink
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          sudo wget https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -O /usr/local/bin/yt-dlp
-          sudo chmod a+rx /usr/local/bin/yt-dlp
+          pip install --upgrade streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live cipuyyy221 (Direct URL + FFMPEG)
+      - name: Rekam Live cipuyyy221 (Anti Black Screen)
         continue-on-error: true
         run: |
-          echo "Mengambil URL stream asli dari TikTok menggunakan yt-dlp..."
-          
-          # Mengambil direct link M3U8/FLV dari live TikTok
-          STREAM_URL=$(yt-dlp -g "https://www.tiktok.com/@cipuyyy221/live" 2>/dev/null | head -n 1)
-          
-          if [ -z "$STREAM_URL" ]; then
-            echo "Gagal mengambil URL stream! Pastikan akun sedang live."
-            exit 1
+          mkdir -p parts_cipuyyy
+          echo "Memulai perekaman cipuyyy221 maksimal 5 menit..."
+          START_TIME=$(date +%s)
+
+          while true; do
+            NOW=$(date +%s)
+            ELAPSED=$((NOW - START_TIME))
+            if [ $ELAPSED -ge 300 ]; then
+              echo "Batas waktu 5 menit tercapai."
+              break
+            fi
+            REMAINING=$((300 - ELAPSED))
+            
+            # File disimpan dengan format .ts agar anti-corrupt walau dimatikan paksa
+            FILE_OUT="parts_cipuyyy/part_${NOW}.ts"
+
+            timeout ${REMAINING}s streamlink --quiet --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+                       --http-header "Referer=https://www.tiktok.com/" \
+                       "https://www.tiktok.com/@cipuyyy221/live" best -o "$FILE_OUT" || true
+
+            sleep 3
+          done
+
+          # Menggabungkan dan merapikan file .ts menjadi .mp4 secara sempurna
+          if [ "$(ls -A parts_cipuyyy 2>/dev/null)" ]; then
+            printf "file '%s'\n" parts_cipuyyy/*.ts > list_cipuyyy.txt
+            ffmpeg -y -f concat -safe 0 -i list_cipuyyy.txt -c copy -bsf:a aac_adtstoasc -movflags +faststart "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4"
           fi
-          
-          echo "URL berhasil didapat! Mulai merekam tepat 5 menit..."
-          
-          # Merekam menggunakan ffmpeg. Opsi -t 300 akan memastikan durasi video PAS 5 menit.
-          ffmpeg -y -user_agent "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-                 -t 300 \
-                 -i "$STREAM_URL" \
-                 -c copy -bsf:a aac_adtstoasc -movflags +faststart \
-                 "rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4" || true
 
       - name: Upload ke GDrive
         if: always()
