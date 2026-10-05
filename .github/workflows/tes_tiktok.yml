@@ -1,4 +1,4 @@
-name: 🔴 Test Rekam Streamlink 2 Menit
+name: 🔴 Fix Final Rekam TikTok
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Streamlink & FFmpeg
+      - name: Install Tools
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y python3-pip ffmpeg rclone
@@ -22,22 +22,25 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live Pakai Streamlink (2 Menit)
+      - name: Rekam dan Fix Render MP4
         run: |
           mkdir -p build_output
-          echo "Mulai rekam live pakai Streamlink..."
           
-          # Gunakan streamlink dengan timeout 120 detik (2 menit)
-          timeout -s SIGINT 120s streamlink --twitch-disable-ads "tiktok.com/@ranngusion__/live" best -o "build_output/test_streamlink_$(date +'%Y%m%d_%H%M%S').mp4" || true
+          # Rekam 2 menit untuk uji coba kestabilan
+          timeout -s SIGINT 120s streamlink "tiktok.com/@ranngusion__/live" best -o "live_mentah.ts" || true
+
+          # Render ulang total dengan FFmpeg agar metadata video valid dan bisa diputar
+          if [ -f "live_mentah.ts" ]; then
+            ffmpeg -y -i live_mentah.ts -c:v libx264 -preset ultrafast -c:a aac -movflags +faststart "build_output/hasil_final_$(date +'%Y%m%d_%H%M%S').mp4"
+            rm live_mentah.ts
+          fi
 
       - name: Upload ke GDrive
         if: always()
         run: |
           find build_output/ -type f -size -1M -delete 2>/dev/null || true
-          
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            echo "Mengupload file hasil streamlink ke GDrive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           else
-            echo "❌ GAGAL: Tidak ada file valid yang diupload."
+            echo "❌ GAGAL: File kosong."
           fi
