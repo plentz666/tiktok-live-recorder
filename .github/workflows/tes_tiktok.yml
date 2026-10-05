@@ -22,18 +22,18 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live cipuyyy221
+      - name: Rekam Live betrixstelar
         run: |
           mkdir -p build_output
           echo "Merekam ke TS selama 5 menit..."
           
           # 1. Rekam ke format aslinya (.ts) agar stabil dan tidak korup
-          timeout -s SIGINT 300s streamlink --loglevel debug --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "https://www.tiktok.com/@cipuyyy221/live" best -o "rekaman_mentah.ts" || true
+          timeout -s SIGINT 300s streamlink --loglevel debug --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "https://www.tiktok.com/@betrixstelar/live" best -o "rekaman_mentah.ts" || true
 
           # 2. Bungkus ulang (Remux) file .ts menjadi .mp4 asli tanpa render ulang
           if [ -f "rekaman_mentah.ts" ]; then
             echo "Mengubah format agar bisa diputar di GDrive..."
-            ffmpeg -y -i rekaman_mentah.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "build_output/rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4"
+            ffmpeg -y -i rekaman_mentah.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "build_output/rekaman_betrixstelar_$(date +'%Y%m%d_%H%M%S').mp4"
             rm rekaman_mentah.ts
           fi
 
