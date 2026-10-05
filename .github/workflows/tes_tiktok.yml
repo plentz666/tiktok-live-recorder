@@ -1,4 +1,4 @@
-name: 🔴 Fix Final Streamlink Master
+name: "🔴 Rekam Tes TikTok"
 
 on:
   workflow_dispatch:
@@ -6,44 +6,47 @@ on:
 jobs:
   record_job:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Dependencies & Streamlink Latest
+      - name: Install Apps & Streamlink
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y python3-pip ffmpeg rclone git
-          sudo pip3 install --upgrade pip
-          sudo pip3 install git+https://github.com/streamlink/streamlink.git
+          sudo apt-get install -y ffmpeg rclone
+          pip install streamlink
 
       - name: Setup GDrive
+        env:
+          RCLONE_CONFIG_DATA: ${{ secrets.RCLONE_CONFIG_DATA }}
         run: |
           mkdir -p ~/.config/rclone
-          echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
+          echo "$RCLONE_CONFIG_DATA" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live TikTok & Konversi
+      - name: Rekam Live akunliverinee (tes 2 menit)
+        continue-on-error: true
         run: |
-          mkdir -p build_output
-          echo "Mulai rekam live pakai Streamlink versi terbaru..."
-          
-          # Rekam 2 menit uji coba pakai URL lengkap
-          timeout -s SIGINT 120s streamlink "https://www.tiktok.com/@ranngusion__/live" best -o "live_mentah.ts" || true
+          timeout --signal=INT --kill-after=10 120 streamlink \
+            --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+            "https://www.tiktok.com/@akunliverinee/live" best \
+            -o "rekaman_akunliverinee_$(date +'%Y%m%d_%H%M%S').ts" --force || true
 
-          # Proses convert ke MP4 yang valid
-          if [ -f "live_mentah.ts" ]; then
-            echo "Merender video ke format MP4..."
-            ffmpeg -y -i live_mentah.ts -c:v libx264 -preset ultrafast -c:a aac -movflags +faststart "build_output/hasil_final_$(date +'%Y%m%d_%H%M%S').mp4"
-            rm live_mentah.ts
-          fi
+      - name: Perbaiki format ke MP4
+        if: always()
+        run: |
+          shopt -s nullglob
+          for f in rekaman_*.ts; do
+            if [ -s "$f" ]; then
+              ffmpeg -y -loglevel error -i "$f" -c copy -movflags +faststart "${f%.ts}.mp4" && rm "$f"
+            else
+              rm -f "$f"
+            fi
+          done
+          ls -lh *.mp4 2>/dev/null || echo "Tidak ada file rekaman (akun mungkin tidak sedang live)"
 
       - name: Upload ke GDrive
         if: always()
         run: |
-          find build_output/ -type f -size -1M -delete 2>/dev/null || true
-          if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            rclone copy build_output/ gdrive:TikTok_Replays --progress
-          else
-            echo "❌ GAGAL: File kosong atau gagal terekam."
-          fi
+          rclone copy ./ gdrive:TikTok_Replays --include "*.mp4" --progress
