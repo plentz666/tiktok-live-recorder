@@ -1,4 +1,4 @@
-name: 🔴 Rekam Live TikTok Sampai Off
+name: 🔴 Test Rekam 2 Menit TikTok
 
 on:
   workflow_dispatch:
@@ -23,13 +23,20 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live Sampai Off Live
+      - name: Test Rekam 2 Menit (Format .ts)
         run: |
           mkdir -p build_output
-          echo "Merekam live sampai akun off..."
+          echo "Mulai test rekam 2 menit dengan .ts..."
           
-          # Tanpa timeout! yt-dlp akan merekam secara natural sampai live selesai/off
-          yt-dlp "https://www.tiktok.com/@ranngusion__/live" -o "build_output/rekaman_ranngusion___$(date +'%Y%m%d_%H%M%S').mp4" || true
+          # 1. Rekam pakai timeout 120 detik (2 menit) ke format .ts yang aman
+          timeout -s SIGINT 120s yt-dlp --hls-use-mpegts "https://www.tiktok.com/@ranngusion__/live" -o "live_mentah.ts" || true
+
+          # 2. Konversi ke .mp4 agar valid dan bisa diputar di GDrive
+          if [ -f "live_mentah.ts" ]; then
+            echo "Mengonversi file .ts ke .mp4..."
+            ffmpeg -y -i live_mentah.ts -c copy -movflags +faststart "build_output/test_2menit_$(date +'%Y%m%d_%H%M%S').mp4"
+            rm live_mentah.ts
+          fi
 
       - name: Upload ke GDrive
         if: always()
@@ -37,7 +44,7 @@ jobs:
           find build_output/ -type f -size -1M -delete 2>/dev/null || true
           
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            echo "Mengupload file full durasi ke GDrive..."
+            echo "Mengupload file test ke GDrive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           else
             echo "❌ GAGAL: Tidak ada file valid yang diupload."
