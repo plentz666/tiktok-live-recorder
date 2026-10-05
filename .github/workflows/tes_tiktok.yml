@@ -1,4 +1,4 @@
-name: 🔴 Rekam Live Live TikTok
+name: 🔴 Rekam Tes Live TikTok
 
 on:
   workflow_dispatch:
@@ -29,12 +29,16 @@ jobs:
             --http-header "Referer=https://www.tiktok.com/" \
             --retry-streams 5 \
             --retry-max 10 \
-            "https://www.tiktok.com/@akunliverinee/live" h264_hd,h264_best,720p,best \
+            "https://www.tiktok.com/@akunliverinee/live" best \
             -o "raw_akunliverinee.ts" --force || true
 
+          # Cek apakah file mentah berhasil terekam
           if [ -f "raw_akunliverinee.ts" ] && [ -s "raw_akunliverinee.ts" ]; then
+            echo "File mentah ditemukan, mulai proses convert..."
             ffmpeg -y -i "raw_akunliverinee.ts" -c copy -movflags +faststart "rekaman_akunliverinee_$(date +'%Y%m%d_%H%M%S').mp4"
             rm "raw_akunliverinee.ts"
+          else
+            echo "❌ ERROR: Streamlink gagal mendownload stream atau file kosong!"
           fi
 
       - name: Upload ke GDrive
@@ -45,4 +49,6 @@ jobs:
           
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
             rclone copy build_output/ gdrive:TikTok_Replays --progress
+          else
+            echo "❌ GAGAL: Tidak ada file video untuk diupload."
           fi
