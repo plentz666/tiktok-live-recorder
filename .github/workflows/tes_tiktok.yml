@@ -11,10 +11,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Streamlink & Rclone
+      - name: Install Streamlink, FFmpeg & Rclone
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y rclone
+          sudo apt-get install -y ffmpeg rclone
           pip install --upgrade streamlink
 
       - name: Setup GDrive
@@ -25,16 +25,23 @@ jobs:
       - name: Rekam Live cipuyyy221
         run: |
           mkdir -p build_output
-          echo "Merekam langsung ke MP4 menggunakan SIGINT agar file tidak rusak..."
+          echo "Merekam ke TS selama 5 menit..."
           
-          # -s SIGINT adalah kunci agar file MP4 ditutup dengan rapi dan bisa diputar.
-          timeout -s SIGINT 300s streamlink --loglevel debug --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "https://www.tiktok.com/@cipuyyy221/live" best -o "build_output/rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4" || true
+          # 1. Rekam ke format aslinya (.ts) agar stabil dan tidak korup
+          timeout -s SIGINT 300s streamlink --loglevel debug --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "https://www.tiktok.com/@cipuyyy221/live" best -o "rekaman_mentah.ts" || true
+
+          # 2. Bungkus ulang (Remux) file .ts menjadi .mp4 asli tanpa render ulang
+          if [ -f "rekaman_mentah.ts" ]; then
+            echo "Mengubah format agar bisa diputar di GDrive..."
+            ffmpeg -y -i rekaman_mentah.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "build_output/rekaman_cipuyyy221_$(date +'%Y%m%d_%H%M%S').mp4"
+            rm rekaman_mentah.ts
+          fi
 
       - name: Upload ke GDrive
         if: always()
         run: |
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            echo "Mengupload file ke GDrive..."
+            echo "Mengupload file MP4 ke GDrive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           else
             echo "Gagal merekam, tidak ada file untuk diupload."
