@@ -11,33 +11,41 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Tools
+      - name: Install yt-dlp & FFmpeg
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
-          pip install --upgrade streamlink
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod a+rx /usr/local/bin/yt-dlp
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live betrixstelar
+      - name: Rekam Live ranngusion__ & Fix MP4
         run: |
           mkdir -p build_output
+          echo "Merekam live ranngusion__ menggunakan yt-dlp..."
           
-          # Rekam langsung dan pastikan exit code ditangani
-          timeout -s SIGINT 300s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "https://www.tiktok.com/@betrixstelar/live" best -o "build_output/rekaman_betrixstelar.mp4" || true
+          # 1. Rekam dengan yt-dlp
+          timeout -s SIGINT 300s yt-dlp "https://www.tiktok.com/@ranngusion__/live" -o "video_mentah.mp4" || true
+
+          # 2. Perbaiki struktur MP4 dengan ffmpeg agar bisa diputar di GDrive
+          if [ -f "video_mentah.mp4" ]; then
+            echo "Memperbaiki format MP4 agar bisa diputar..."
+            ffmpeg -y -i video_mentah.mp4 -c copy -movflags +faststart "build_output/rekaman_ranngusion___$(date +'%Y%m%d_%H%M%S').mp4"
+            rm video_mentah.mp4
+          fi
 
       - name: Upload ke GDrive
         if: always()
         run: |
-          # HAPUS MUTLAK FILE 0 KB ATAU DI BAWAH 1 MB (Mencegah file kosong ter-upload)
           find build_output/ -type f -size -1M -delete 2>/dev/null || true
-
+          
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            echo "File valid ditemukan, mengupload ke GDrive..."
+            echo "Mengupload file ke GDrive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           else
-            echo "❌ GAGAL: Streamer offline atau TikTok memblokir server GitHub (File 0 KB dibuang)."
+            echo "❌ GAGAL: Tidak ada file valid yang diupload."
           fi
