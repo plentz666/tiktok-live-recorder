@@ -1,4 +1,4 @@
-name: "🔴 Rekam Tes TikTok"
+name: 🔴 Rekam Tes Live TikTok
 
 on:
   workflow_dispatch:
@@ -6,7 +6,6 @@ on:
 jobs:
   record_job:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
       - name: Checkout
@@ -15,38 +14,35 @@ jobs:
       - name: Install Apps & Streamlink
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg rclone
-          pip install streamlink
+          sudo apt-get install -y ffmpeg rclone python3-pip
+          pip3 install --upgrade streamlink
 
       - name: Setup GDrive
-        env:
-          RCLONE_CONFIG_DATA: ${{ secrets.RCLONE_CONFIG_DATA }}
         run: |
           mkdir -p ~/.config/rclone
-          echo "$RCLONE_CONFIG_DATA" | base64 -d > ~/.config/rclone/rclone.conf
+          echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live akunliverinee (tes 2 menit)
+      - name: Rekam Live akunliverinee
         continue-on-error: true
         run: |
-          timeout --signal=INT --kill-after=10 120 streamlink \
-            --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-            "https://www.tiktok.com/@akunliverinee/live" best \
-            -o "rekaman_akunliverinee_$(date +'%Y%m%d_%H%M%S').ts" --force || true
+          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+            --http-header "Referer=https://www.tiktok.com/" \
+            --retry-streams 5 \
+            --retry-max 10 \
+            "https://www.tiktok.com/@akunliverinee/live" h264_hd,h264_best,720p,best \
+            -o "raw_akunliverinee.ts" --force || true
 
-      - name: Perbaiki format ke MP4
-        if: always()
-        run: |
-          shopt -s nullglob
-          for f in rekaman_*.ts; do
-            if [ -s "$f" ]; then
-              ffmpeg -y -loglevel error -i "$f" -c copy -movflags +faststart "${f%.ts}.mp4" && rm "$f"
-            else
-              rm -f "$f"
-            fi
-          done
-          ls -lh *.mp4 2>/dev/null || echo "Tidak ada file rekaman (akun mungkin tidak sedang live)"
+          if [ -f "raw_akunliverinee.ts" ] && [ -s "raw_akunliverinee.ts" ]; then
+            ffmpeg -y -i "raw_akunliverinee.ts" -c copy -movflags +faststart "rekaman_akunliverinee_$(date +'%Y%m%d_%H%M%S').mp4"
+            rm "raw_akunliverinee.ts"
+          fi
 
       - name: Upload ke GDrive
         if: always()
         run: |
-          rclone copy ./ gdrive:TikTok_Replays --include "*.mp4" --progress
+          mkdir -p build_output
+          mv rekaman_*.mp4 build_output/ 2>/dev/null || true
+          
+          if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
+            rclone copy build_output/ gdrive:TikTok_Replays --progress
+          fi
