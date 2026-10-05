@@ -1,4 +1,4 @@
-name: 🔴 Rekam Tes Live TikTok
+name: 🔴 Rekam Live Live TikTok
 
 on:
   workflow_dispatch:
@@ -22,10 +22,10 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live akunliverinee
+      - name: Rekam Live akunliverinee (2 Menit)
         continue-on-error: true
         run: |
-          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+          timeout -s SIGINT 120s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
             --http-header "Referer=https://www.tiktok.com/" \
             --retry-streams 5 \
             --retry-max 10 \
