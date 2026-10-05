@@ -1,4 +1,4 @@
-name: 🔴 Test Rekam 2 Menit TikTok
+name: 🔴 Test Rekam Streamlink 2 Menit
 
 on:
   workflow_dispatch:
@@ -11,32 +11,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install yt-dlp & FFmpeg
+      - name: Install Streamlink & FFmpeg
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y ffmpeg rclone
-          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
-          sudo chmod a+rx /usr/local/bin/yt-dlp
+          sudo apt-get install -y python3-pip ffmpeg rclone
+          sudo pip3 install --upgrade streamlink
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Test Rekam 2 Menit (Format .ts)
+      - name: Rekam Live Pakai Streamlink (2 Menit)
         run: |
           mkdir -p build_output
-          echo "Mulai test rekam 2 menit dengan .ts..."
+          echo "Mulai rekam live pakai Streamlink..."
           
-          # 1. Rekam pakai timeout 120 detik (2 menit) ke format .ts yang aman
-          timeout -s SIGINT 120s yt-dlp --hls-use-mpegts "https://www.tiktok.com/@ranngusion__/live" -o "live_mentah.ts" || true
-
-          # 2. Konversi ke .mp4 agar valid dan bisa diputar di GDrive
-          if [ -f "live_mentah.ts" ]; then
-            echo "Mengonversi file .ts ke .mp4..."
-            ffmpeg -y -i live_mentah.ts -c copy -movflags +faststart "build_output/test_2menit_$(date +'%Y%m%d_%H%M%S').mp4"
-            rm live_mentah.ts
-          fi
+          # Gunakan streamlink dengan timeout 120 detik (2 menit)
+          timeout -s SIGINT 120s streamlink --twitch-disable-ads "tiktok.com/@ranngusion__/live" best -o "build_output/test_streamlink_$(date +'%Y%m%d_%H%M%S').mp4" || true
 
       - name: Upload ke GDrive
         if: always()
@@ -44,7 +36,7 @@ jobs:
           find build_output/ -type f -size -1M -delete 2>/dev/null || true
           
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            echo "Mengupload file test ke GDrive..."
+            echo "Mengupload file hasil streamlink ke GDrive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           else
             echo "❌ GAGAL: Tidak ada file valid yang diupload."
