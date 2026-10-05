@@ -1,4 +1,4 @@
-name: 🔴 Fix Final Rekam TikTok
+name: 🔴 Fix Final Streamlink Master
 
 on:
   workflow_dispatch:
@@ -11,26 +11,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Tools
+      - name: Install Dependencies & Streamlink Latest
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y python3-pip ffmpeg rclone
-          sudo pip3 install --upgrade streamlink
+          sudo apt-get install -y python3-pip ffmpeg rclone git
+          sudo pip3 install --upgrade pip
+          sudo pip3 install git+https://github.com/streamlink/streamlink.git
 
       - name: Setup GDrive
         run: |
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam dan Fix Render MP4
+      - name: Rekam Live TikTok & Konversi
         run: |
           mkdir -p build_output
+          echo "Mulai rekam live pakai Streamlink versi terbaru..."
           
-          # Rekam 2 menit untuk uji coba kestabilan
-          timeout -s SIGINT 120s streamlink "tiktok.com/@ranngusion__/live" best -o "live_mentah.ts" || true
+          # Rekam 2 menit uji coba pakai URL lengkap
+          timeout -s SIGINT 120s streamlink "https://www.tiktok.com/@ranngusion__/live" best -o "live_mentah.ts" || true
 
-          # Render ulang total dengan FFmpeg agar metadata video valid dan bisa diputar
+          # Proses convert ke MP4 yang valid
           if [ -f "live_mentah.ts" ]; then
+            echo "Merender video ke format MP4..."
             ffmpeg -y -i live_mentah.ts -c:v libx264 -preset ultrafast -c:a aac -movflags +faststart "build_output/hasil_final_$(date +'%Y%m%d_%H%M%S').mp4"
             rm live_mentah.ts
           fi
@@ -42,5 +45,5 @@ jobs:
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           else
-            echo "❌ GAGAL: File kosong."
+            echo "❌ GAGAL: File kosong atau gagal terekam."
           fi
