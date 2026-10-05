@@ -23,18 +23,18 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live ranngusion__ & Fix MP4
+      - name: Rekam Live ranngusion__ Pas 5 Menit
         run: |
           mkdir -p build_output
-          echo "Merekam live ranngusion__ menggunakan yt-dlp..."
+          echo "Mulai merekam live..."
           
-          # 1. Rekam dengan yt-dlp
-          timeout -s SIGINT 300s yt-dlp "https://www.tiktok.com/@ranngusion__/live" -o "video_mentah.mp4" || true
+          # 1. Rekam live tanpa timeout mentah yang bikin korup (biarkan rekam agak lamaan dikit, misal 330 detik)
+          yt-dlp --hls-use-mpegts --downloader ffmpeg --downloader-args "ffmpeg_i:-t 330" "https://www.tiktok.com/@ranngusion__/live" -o "video_mentah.mp4" || true
 
-          # 2. Perbaiki struktur MP4 dengan ffmpeg agar bisa diputar di GDrive
+          # 2. Potong dan rapikan durasinya pas 5 menit (300 detik) menggunakan FFmpeg secara presisi tinggi
           if [ -f "video_mentah.mp4" ]; then
-            echo "Memperbaiki format MP4 agar bisa diputar..."
-            ffmpeg -y -i video_mentah.mp4 -c copy -movflags +faststart "build_output/rekaman_ranngusion___$(date +'%Y%m%d_%H%M%S').mp4"
+            echo "Memotong dan merapikan durasi video ke GDrive..."
+            ffmpeg -y -i video_mentah.mp4 -t 300 -c copy -movflags +faststart "build_output/rekaman_ranngusion___$(date +'%Y%m%d_%H%M%S').mp4"
             rm video_mentah.mp4
           fi
 
