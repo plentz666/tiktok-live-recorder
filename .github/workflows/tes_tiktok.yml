@@ -11,7 +11,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Streamlink, FFmpeg & Rclone
+      - name: Install Tools
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg rclone
@@ -25,24 +25,19 @@ jobs:
       - name: Rekam Live betrixstelar
         run: |
           mkdir -p build_output
-          echo "Merekam ke TS selama 5 menit..."
           
-          # 1. Rekam ke format aslinya (.ts) agar stabil dan tidak korup
-          timeout -s SIGINT 300s streamlink --loglevel debug --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "https://www.tiktok.com/@betrixstelar/live" best -o "rekaman_mentah.ts" || true
-
-          # 2. Bungkus ulang (Remux) file .ts menjadi .mp4 asli tanpa render ulang
-          if [ -f "rekaman_mentah.ts" ]; then
-            echo "Mengubah format agar bisa diputar di GDrive..."
-            ffmpeg -y -i rekaman_mentah.ts -c copy -bsf:a aac_adtstoasc -movflags +faststart "build_output/rekaman_betrixstelar_$(date +'%Y%m%d_%H%M%S').mp4"
-            rm rekaman_mentah.ts
-          fi
+          # Rekam langsung dan pastikan exit code ditangani
+          timeout -s SIGINT 300s streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "https://www.tiktok.com/@betrixstelar/live" best -o "build_output/rekaman_betrixstelar.mp4" || true
 
       - name: Upload ke GDrive
         if: always()
         run: |
+          # HAPUS MUTLAK FILE 0 KB ATAU DI BAWAH 1 MB (Mencegah file kosong ter-upload)
+          find build_output/ -type f -size -1M -delete 2>/dev/null || true
+
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
-            echo "Mengupload file MP4 ke GDrive..."
+            echo "File valid ditemukan, mengupload ke GDrive..."
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           else
-            echo "Gagal merekam, tidak ada file untuk diupload."
+            echo "❌ GAGAL: Streamer offline atau TikTok memblokir server GitHub (File 0 KB dibuang)."
           fi
