@@ -26,16 +26,16 @@ jobs:
       - name: Rekam Live ranngusion__ Pas 5 Menit
         run: |
           mkdir -p build_output
-          echo "Mulai merekam live..."
+          echo "Merekam live tepat 5 menit..."
           
-          # 1. Rekam live tanpa timeout mentah yang bikin korup (biarkan rekam agak lamaan dikit, misal 330 detik)
-          yt-dlp --hls-use-mpegts --downloader ffmpeg --downloader-args "ffmpeg_i:-t 330" "https://www.tiktok.com/@ranngusion__/live" -o "video_mentah.mp4" || true
+          # 1. Rekam pakai timeout persis 300 detik (5 menit)
+          timeout -s SIGINT 300s yt-dlp --hls-use-mpegts "https://www.tiktok.com/@ranngusion__/live" -o "video_mentah.ts" || true
 
-          # 2. Potong dan rapikan durasinya pas 5 menit (300 detik) menggunakan FFmpeg secara presisi tinggi
-          if [ -f "video_mentah.mp4" ]; then
-            echo "Memotong dan merapikan durasi video ke GDrive..."
-            ffmpeg -y -i video_mentah.mp4 -t 300 -c copy -movflags +faststart "build_output/rekaman_ranngusion___$(date +'%Y%m%d_%H%M%S').mp4"
-            rm video_mentah.mp4
+          # 2. Render ulang sebentar pakai ffmpeg agar durasinya fix 5 menit pas & tidak korup/6 detik
+          if [ -f "video_mentah.ts" ]; then
+            echo "Merapikan durasi dan format video..."
+            ffmpeg -y -i video_mentah.ts -t 300 -c:v libx264 -c:a aac -movflags +faststart "build_output/rekaman_ranngusion___$(date +'%Y%m%d_%H%M%S').mp4"
+            rm video_mentah.ts
           fi
 
       - name: Upload ke GDrive
