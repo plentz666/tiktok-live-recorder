@@ -1,4 +1,4 @@
-name: 1️⃣ Rekam Tes 1 Full Live TikTok
+name: 1️⃣ Rekam Test 2 Live TikTok
 
 on:
   workflow_dispatch:
@@ -27,8 +27,8 @@ jobs:
         run: |
           streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
             --http-header "Referer=https://www.tiktok.com/" \
-            --retry-streams 5 \
-            --retry-max 10 \
+            --retry-streams 9999 \
+            --retry-max 0 \
             "https://www.tiktok.com/@nanaaheni_/live" h264_hd,h264_best,720p,best \
             -o "raw_nanaaheni.ts" --force || true
 
@@ -42,8 +42,8 @@ jobs:
         run: |
           streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
             --http-header "Referer=https://www.tiktok.com/" \
-            --retry-streams 5 \
-            --retry-max 10 \
+            --retry-streams 9999 \
+            --retry-max 0 \
             "https://www.tiktok.com/@nnaaheni/live" h264_hd,h264_best,720p,best \
             -o "raw_nnaaheni.ts" --force || true
 
@@ -57,7 +57,7 @@ jobs:
         run: |
           mkdir -p build_output
           mv rekaman_*.mp4 build_output/ 2>/dev/null || true
-
+          
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           fi
