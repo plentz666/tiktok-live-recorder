@@ -1,4 +1,4 @@
-name: 🔴 Rekam Tes Full Live TikTok
+name: 1️⃣ Rekam Tes 1 Full Live TikTok
 
 on:
   workflow_dispatch:
@@ -57,7 +57,7 @@ jobs:
         run: |
           mkdir -p build_output
           mv rekaman_*.mp4 build_output/ 2>/dev/null || true
-          
+
           if [ -d "build_output" ] && [ "$(ls -A build_output)" ]; then
             rclone copy build_output/ gdrive:TikTok_Replays --progress
           fi
