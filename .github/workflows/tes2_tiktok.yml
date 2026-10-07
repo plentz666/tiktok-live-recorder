@@ -1,4 +1,4 @@
-name: 2️⃣ Rekam Tes 2 Live TikTok
+name: 2️⃣ Rekam Test 2 Live TikTok
 
 on:
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
         run: |
           timeout 180 streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
             --http-header "Referer=https://www.tiktok.com/" \
-            --retry-streams infinite \
+            --retry-streams 9999 \
             --retry-max 0 \
             "https://www.tiktok.com/@ranngusion__/live" h264_hd,h264_best,720p,best \
             -o "raw_ranngusion.ts" --force || true
