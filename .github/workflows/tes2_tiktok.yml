@@ -1,4 +1,4 @@
-name: 2️⃣ Rekam Tes 2 Full Live TikTok
+name: 2️⃣ Rekam Tes 2 Live TikTok
 
 on:
   workflow_dispatch:
@@ -22,34 +22,19 @@ jobs:
           mkdir -p ~/.config/rclone
           echo "${{ secrets.RCLONE_CONFIG_DATA }}" | base64 -d > ~/.config/rclone/rclone.conf
 
-      - name: Rekam Live nanaaheni_
+      - name: Rekam Live ranngusion__ (Test Limit)
         continue-on-error: true
         run: |
-          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
+          timeout 180 streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
             --http-header "Referer=https://www.tiktok.com/" \
             --retry-streams infinite \
             --retry-max 0 \
-            "https://www.tiktok.com/@nanaaheni_/live" h264_hd,h264_best,720p,best \
-            -o "raw_nanaaheni.ts" --force || true
+            "https://www.tiktok.com/@ranngusion__/live" h264_hd,h264_best,720p,best \
+            -o "raw_ranngusion.ts" --force || true
 
-          if [ -f "raw_nanaaheni.ts" ] && [ -s "raw_nanaaheni.ts" ]; then
-            ffmpeg -y -i "raw_nanaaheni.ts" -c copy -movflags +faststart "rekaman_nanaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
-            rm "raw_nanaaheni.ts"
-          fi
-
-      - name: Rekam Live nnaaheni
-        continue-on-error: true
-        run: |
-          streamlink --http-header "User-Agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36" \
-            --http-header "Referer=https://www.tiktok.com/" \
-            --retry-streams infinite \
-            --retry-max 0 \
-            "https://www.tiktok.com/@nnaaheni/live" h264_hd,h264_best,720p,best \
-            -o "raw_nnaaheni.ts" --force || true
-
-          if [ -f "raw_nanaaheni.ts" ] && [ -s "raw_nanaaheni.ts" ]; then
-            ffmpeg -y -i "raw_nanaaheni.ts" -c copy -movflags +faststart "rekaman_nnaaheni_$(date +'%Y%m%d_%H%M%S').mp4"
-            rm "raw_nanaaheni.ts"
+          if [ -f "raw_ranngusion.ts" ] && [ -s "raw_ranngusion.ts" ]; then
+            ffmpeg -y -i "raw_ranngusion.ts" -c copy -movflags +faststart "rekaman_ranngusion_$(date +'%Y%m%d_%H%M%S').mp4"
+            rm "raw_ranngusion.ts"
           fi
 
       - name: Upload ke GDrive
