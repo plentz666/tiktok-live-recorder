@@ -1,4 +1,5 @@
-name: 1️⃣ Rekam Test 2 Live TikTok
+name: cat << 'EOF' > .github/workflows/tes1_tiktok.yml
+name: 1️⃣ Rekam Test 1 Live TikTok
 
 on:
   workflow_dispatch:
